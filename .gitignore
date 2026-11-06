@@ -66,6 +66,8 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env*.local
 
 # Generated build output
 /dist/

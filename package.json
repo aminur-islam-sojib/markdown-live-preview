@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "dompurify": "^3.4.17",
+    "firebase": "^13.2.0",
     "github-markdown-css": "^5.8.1",
     "marked": "^15.0.7",
     "mermaid": "^11.16.1",
