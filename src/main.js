@@ -1,8 +1,8 @@
 import Storehouse from 'storehouse-js';
 import * as monaco from 'monaco-editor';
 import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
+import { sanitizeHtml } from './parser/sanitizer';
 
 const init = () => {
     let hasEdited = false;
@@ -258,7 +258,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             renderer
         };
         let html = marked.parse(markdown, options);
-        let sanitized = DOMPurify.sanitize(html);
+        let sanitized = sanitizeHtml(html);
         document.querySelector('#output').innerHTML = sanitized;
         scheduleMermaidRender();
     };
