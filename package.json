@@ -4,7 +4,9 @@
   "description": "[Markdown Live Preview](https://markdownlivepreview.com/) is a tiny web tool to preview Markdown formatted text.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
     "update:css-version": "node scripts/update-css-version.mjs",
     "dev": "vite",
     "build": "vite build",
@@ -24,8 +26,12 @@
   },
   "homepage": "https://github.com/tanabe/markdown-live-preview#readme",
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "http-server": "^14.1.1",
-    "vite": "^6.4.5"
+    "jsdom": "^31.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.5",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "dompurify": "^3.4.17",
