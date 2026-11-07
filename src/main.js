@@ -3,10 +3,35 @@ import * as monaco from 'monaco-editor';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
 import { sanitizeHtml } from './parser/sanitizer';
+import { AutosaveManager, debounce } from './storage/autosave';
 
 const init = () => {
     let hasEdited = false;
     let scrollBarSync = false;
+
+    const saveStatusElement = document.querySelector('#save-status');
+    const updateSaveStatus = (status) => {
+        if (!saveStatusElement) return;
+        switch (status) {
+            case 'saving':
+                saveStatusElement.textContent = 'Saving...';
+                break;
+            case 'saved':
+                saveStatusElement.textContent = 'Saved';
+                break;
+            case 'unavailable':
+                saveStatusElement.textContent = 'Offline (unsaved)';
+                break;
+            case 'error':
+                saveStatusElement.textContent = 'Save failed';
+                break;
+        }
+    };
+
+    const autosaveManager = new AutosaveManager({
+        debounceMs: 300,
+        onStatusChange: updateSaveStatus
+    });
 
     const localStorageNamespace = 'com.markdownlivepreview';
     const localStorageKey = 'last_state';
@@ -119,14 +144,18 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             folding: false
         });
 
+        const debouncedConvert = debounce((val) => {
+            convert(val);
+        }, 150);
+
         editor.onDidChangeModelContent(() => {
             let changed = editor.getValue() != defaultInput;
             if (changed) {
                 hasEdited = true;
             }
             let value = editor.getValue();
-            convert(value);
-            saveLastContent(value);
+            debouncedConvert(value);
+            autosaveManager.save(value);
         });
 
         editor.onDidScrollChange((e) => {
@@ -273,6 +302,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             }
         }
         presetValue(defaultInput);
+        autosaveManager.saveImmediately(defaultInput);
         document.querySelectorAll('.column').forEach((element) => {
             element.scrollTo({ top: 0 });
         });
@@ -282,6 +312,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         editor.setValue(value);
         editor.revealPosition({ lineNumber: 1, column: 1 });
         editor.focus();
+        convert(value);
         hasEdited = false;
     };
 
@@ -467,6 +498,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             }
 
             presetValue(content);
+            autosaveManager.saveImmediately(content);
             document.querySelector('#preview').scrollTo({ top: 0 });
         });
     };
@@ -504,47 +536,43 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
     // ----- local state -----
 
-    let loadLastContent = () => {
-        let lastContent = Storehouse.getItem(localStorageNamespace, localStorageKey);
-        return lastContent;
-    };
-
-    let saveLastContent = (content) => {
-        let expiredAt = new Date(2099, 1, 1);
-        Storehouse.setItem(localStorageNamespace, localStorageKey, content, expiredAt);
-    };
-
     let loadScrollBarSettings = () => {
-        let lastContent = Storehouse.getItem(localStorageNamespace, localStorageScrollBarKey);
-        return lastContent;
+        try {
+            return Storehouse.getItem(localStorageNamespace, localStorageScrollBarKey);
+        } catch {
+            return false;
+        }
     };
 
     let loadThemeSettings = () => {
-        let last = Storehouse.getItem(localStorageNamespace, localStorageThemeKey);
-        if (last === null || last === undefined) {
-            try {
-                // fallback to raw localStorage boot key used by inline script
+        try {
+            let last = Storehouse.getItem(localStorageNamespace, localStorageThemeKey);
+            if (last === null || last === undefined) {
                 const raw = localStorage.getItem('com.markdownlivepreview_theme');
                 if (raw === 'dark') return true;
                 if (raw === 'light') return false;
-            } catch (e) {
-                // ignore
             }
+            return last;
+        } catch {
+            return false;
         }
-        return last;
     };
 
     let saveScrollBarSettings = (settings) => {
-        let expiredAt = new Date(2099, 1, 1);
-        Storehouse.setItem(localStorageNamespace, localStorageScrollBarKey, settings, expiredAt);
+        try {
+            let expiredAt = new Date(2099, 1, 1);
+            Storehouse.setItem(localStorageNamespace, localStorageScrollBarKey, settings, expiredAt);
+        } catch {
+            // ignore storage errors
+        }
     };
 
     let saveThemeSettings = (settings) => {
-        let expiredAt = new Date(2099, 1, 1);
-        Storehouse.setItem(localStorageNamespace, localStorageThemeKey, settings, expiredAt);
         try {
+            let expiredAt = new Date(2099, 1, 1);
+            Storehouse.setItem(localStorageNamespace, localStorageThemeKey, settings, expiredAt);
             localStorage.setItem('com.markdownlivepreview_theme', settings ? 'dark' : 'light');
-        } catch (e) {
+        } catch {
             // ignore storage errors
         }
     };
@@ -626,13 +654,9 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     };
 
     // ----- entry point -----
-    let lastContent = loadLastContent();
+    let lastContent = autosaveManager.load(defaultInput);
     let editor = setupEditor();
-    if (typeof lastContent === 'string') {
-        presetValue(lastContent);
-    } else {
-        presetValue(defaultInput);
-    }
+    presetValue(lastContent);
     setupOpenButton();
     setupResetButton();
     setupCopyButton(editor);

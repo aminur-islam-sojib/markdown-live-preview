@@ -100,6 +100,13 @@ header a:hover {
     user-select: none;
 }
 
+#save-status {
+    margin-left: 16px;
+    font-size: 11px;
+    opacity: 0.8;
+    align-self: center;
+}
+
 header input[type="checkbox"] {
     vertical-align: middle;
     margin-right: 4px;
