@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=d94eaec13b7c">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=7d701aa637f6">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -54,7 +54,14 @@
             <div><button type="button" id="open-button">Open</button></div>
             <input type="file" id="open-file-input" accept=".md,.markdown,text/markdown" hidden>
             <div id="copy-button"><a href="#">Copy</a></div>
-            <div id="export-button"><a href="#">Export PDF</a></div>
+            <div class="dropdown" id="export-dropdown">
+              <button type="button" id="export-dropdown-btn" class="menu-btn" aria-haspopup="true" aria-expanded="false">Export ▾</button>
+              <div class="dropdown-content" id="export-dropdown-content" role="menu">
+                <button type="button" id="export-md-btn" role="menuitem">Export Markdown (.md)</button>
+                <button type="button" id="export-html-btn" role="menuitem">Export HTML (.html)</button>
+                <button type="button" id="export-pdf-btn" role="menuitem">Export PDF</button>
+              </div>
+            </div>
             <div id="reset-button"><a href="#">Reset</a></div>
             <div id="sync-button">
               <input type="checkbox" id="sync-scroll-checkbox"><label for="sync-scroll-checkbox">Sync scroll</label>

@@ -88,8 +88,67 @@ header a:hover {
     margin-left: 16px;
 }
 
-#export-button {
+.menu-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.menu-btn:hover {
+    text-decoration: underline;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
     margin-left: 16px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #333;
+    min-width: 175px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3);
+    z-index: 100;
+    border-radius: 4px;
+    padding: 4px 0;
+    margin-top: 4px;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.dropdown-content button {
+    color: #fff;
+    padding: 8px 12px;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.dropdown-content button:hover,
+.dropdown-content button:focus {
+    background-color: #555;
+    outline: none;
+}
+
+.split-container.drag-over {
+    outline: 3px dashed #0969da;
+    outline-offset: -3px;
+    background-color: rgba(9, 105, 218, 0.05);
 }
 
 #sync-button {

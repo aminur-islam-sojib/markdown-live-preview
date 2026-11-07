@@ -4,6 +4,13 @@ import { marked } from 'marked';
 import mermaid from 'mermaid';
 import { sanitizeHtml } from './parser/sanitizer';
 import { AutosaveManager, debounce } from './storage/autosave';
+import {
+    downloadFile,
+    deriveFilename,
+    generateHtmlDocument,
+    isMarkdownFile,
+    readFileAsText
+} from './export/file-io';
 
 const init = () => {
     let hasEdited = false;
@@ -523,14 +530,116 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         });
     };
 
-    let setupExportButton = () => {
-        const exportButton = document.querySelector('#export-button');
-        if (!exportButton) {
+    let setupExportMenu = (editor) => {
+        const dropdown = document.querySelector('#export-dropdown');
+        const dropdownBtn = document.querySelector('#export-dropdown-btn');
+        const dropdownContent = document.querySelector('#export-dropdown-content');
+        const exportMdBtn = document.querySelector('#export-md-btn');
+        const exportHtmlBtn = document.querySelector('#export-html-btn');
+        const exportPdfBtn = document.querySelector('#export-pdf-btn');
+
+        if (!dropdown || !dropdownBtn || !dropdownContent) {
             return;
         }
-        exportButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            exportPreviewToPdf();
+
+        const closeDropdown = () => {
+            dropdownContent.classList.remove('show');
+            dropdownBtn.setAttribute('aria-expanded', 'false');
+        };
+
+        const toggleDropdown = (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownContent.classList.toggle('show');
+            dropdownBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        };
+
+        dropdownBtn.addEventListener('click', toggleDropdown);
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dropdownContent.classList.contains('show')) {
+                closeDropdown();
+                dropdownBtn.focus();
+            }
+        });
+
+        if (exportMdBtn) {
+            exportMdBtn.addEventListener('click', () => {
+                closeDropdown();
+                const content = editor.getValue();
+                const filename = deriveFilename(content, 'md');
+                downloadFile(content, filename, 'text/markdown');
+            });
+        }
+
+        if (exportHtmlBtn) {
+            exportHtmlBtn.addEventListener('click', () => {
+                closeDropdown();
+                const content = editor.getValue();
+                const outputElement = document.querySelector('#output');
+                const renderedHtml = outputElement ? outputElement.innerHTML : '';
+                const match = content.match(/^#\s+(.+)$/m);
+                const docTitle = match && match[1] ? match[1].trim() : 'Markdown Live Preview Export';
+                const fullHtml = generateHtmlDocument(docTitle, renderedHtml);
+                const filename = deriveFilename(content, 'html');
+                downloadFile(fullHtml, filename, 'text/html');
+            });
+        }
+
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', () => {
+                closeDropdown();
+                exportPreviewToPdf();
+            });
+        }
+    };
+
+    let setupDragAndDrop = () => {
+        const container = document.getElementById('container');
+        if (!container) return;
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            window.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                container.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            window.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (eventName === 'drop' || (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight)) {
+                    container.classList.remove('drag-over');
+                }
+            });
+        });
+
+        window.addEventListener('drop', async (e) => {
+            container.classList.remove('drag-over');
+            const files = e.dataTransfer?.files;
+            if (!files || files.length === 0) return;
+
+            const file = files[0];
+            if (!isMarkdownFile(file)) {
+                window.alert('Please drop a Markdown (.md) or plain text file.');
+                return;
+            }
+
+            try {
+                const content = await readFileAsText(file);
+                presetValue(content);
+                autosaveManager.saveImmediately(content);
+                document.querySelector('#preview')?.scrollTo({ top: 0 });
+            } catch (err) {
+                window.alert('Unable to read this file. Please try again.');
+            }
         });
     };
 
@@ -660,7 +769,8 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     setupOpenButton();
     setupResetButton();
     setupCopyButton(editor);
-    setupExportButton();
+    setupExportMenu(editor);
+    setupDragAndDrop();
 
     let scrollBarSettings = loadScrollBarSettings() || false;
     initScrollBarSync(scrollBarSettings);
