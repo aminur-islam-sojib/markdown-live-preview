@@ -17,7 +17,8 @@ import {
   LogOut,
   Cloud,
   Check,
-  Edit2
+  Edit2,
+  Menu
 } from 'lucide-react';
 import { SaveStatus, Theme } from '../types';
 
@@ -44,6 +45,7 @@ interface HeaderProps {
   isDirty?: boolean;
   onDownloadMd?: () => void;
   onCopyContent?: () => void;
+  onToggleNotesDrawer?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -68,7 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
   onEditNoteDetails,
   isDirty = false,
   onDownloadMd,
-  onCopyContent
+  onCopyContent,
+  onToggleNotesDrawer
 }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -115,8 +118,19 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 md:px-4 flex items-center justify-between select-none shrink-0 transition-colors">
-      {/* Left section: Logo & Document Tabs */}
-      <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+      {/* Left section: Hamburger Drawer Toggle, Logo & Document Tabs */}
+      <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+        {/* Notes Library Hamburger Button */}
+        <button
+          type="button"
+          onClick={onToggleNotesDrawer}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition -ml-1 shrink-0"
+          title="Open Notes Library (Ctrl+O)"
+          aria-label="Open Notes Library"
+        >
+          <Menu className="w-4 h-4 stroke-[2.2]" />
+        </button>
+
         {/* App Logo */}
         <a
           href="/"

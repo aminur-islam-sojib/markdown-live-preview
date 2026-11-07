@@ -7,6 +7,7 @@ import { PreviewPane } from './components/PreviewPane';
 import { SaveNoteModal } from './components/SaveNoteModal';
 import { AuthModal } from './components/AuthModal';
 import { MyNotesModal } from './components/MyNotesModal';
+import { NotesDrawer, UnifiedNote } from './components/NotesDrawer';
 import { Footer } from './components/Footer';
 import { Toast, ToastData } from './components/Toast';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
@@ -186,6 +187,7 @@ export const App: React.FC = () => {
   const isDirty = content !== lastSavedContent;
 
   // 6. Modal Open & Toast States
+  const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMyNotesModalOpen, setIsMyNotesModalOpen] = useState(false);
@@ -384,12 +386,15 @@ export const App: React.FC = () => {
     setIsSaveModalOpen(true);
   }, [showToast]);
 
-  // Keyboard shortcut Ctrl+S
+  // Keyboard shortcuts Ctrl+S, Ctrl+O, Cmd+K
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         handleSaveTrigger();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'o' || e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        setIsNotesDrawerOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -653,21 +658,30 @@ export const App: React.FC = () => {
     setSaveStatus({ text: 'Downloaded .md', type: 'saved' });
   };
 
-  const handleSelectCloudDoc = async (doc: CloudDocument) => {
-    setActiveCloudDocId(doc.id);
-    let noteContent = doc.content;
-    if (typeof noteContent !== 'string') {
-      const full = await getCloudDocument(doc.id);
-      noteContent = full?.content ?? '';
+  const handleSelectNote = async (note: { id: string; title: string; content?: string; source: 'cloud' | 'local' }) => {
+    let noteContent = note.content;
+    if (note.source === 'cloud') {
+      setActiveCloudDocId(note.id);
+      if (typeof noteContent !== 'string') {
+        const full = await getCloudDocument(note.id);
+        noteContent = full?.content ?? '';
+      }
+      setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
+    } else {
+      setActiveCloudDocId(null);
+      setSaveStatus({ text: 'Saved locally', type: 'saved' });
     }
-    setContent(noteContent);
-    setLastSavedContent(noteContent);
-    setDocTitle(doc.title || 'Untitled Document');
-    autosaveRef.current?.saveImmediately(noteContent);
+
+    const finalContent = noteContent ?? '';
+    setContent(finalContent);
+    setLastSavedContent(finalContent);
+    const cleanTitle = (note.title || 'Untitled Document').replace(/\.md$/i, '');
+    setDocTitle(cleanTitle);
+    autosaveRef.current?.saveImmediately(finalContent);
     try {
-      localStorage.setItem('com.markdownlivepreview_doc_title', doc.title || 'Untitled Document');
+      localStorage.setItem('com.markdownlivepreview_doc_title', cleanTitle);
     } catch {}
-    setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
+    showToast({ message: `Opened "${cleanTitle}"`, type: 'info' });
   };
 
   const toggleFullscreen = () => {
@@ -704,6 +718,7 @@ export const App: React.FC = () => {
           supabaseSignOut();
           setActiveCloudDocId(null);
         }}
+        onToggleNotesDrawer={() => setIsNotesDrawerOpen((prev) => !prev)}
         isDirty={isDirty}
         onDownloadMd={() => handleDownloadMd(docTitle)}
         onCopyContent={() => {
@@ -817,13 +832,25 @@ export const App: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)}
       />
 
-      {/* My Notes Modal */}
+      {/* Slide-over Notes Library Drawer */}
+      <NotesDrawer
+        isOpen={isNotesDrawerOpen}
+        onClose={() => setIsNotesDrawerOpen(false)}
+        activeDocId={activeCloudDocId}
+        onSelectNote={handleSelectNote}
+        onNewNote={handleNewDoc}
+        onOpenExplorerModal={() => setIsMyNotesModalOpen(true)}
+        currentUser={currentUser}
+      />
+
+      {/* Dual-Pane Notes Explorer Modal */}
       <MyNotesModal
         isOpen={isMyNotesModalOpen}
         onClose={() => setIsMyNotesModalOpen(false)}
         activeDocId={activeCloudDocId}
-        onSelectDoc={handleSelectCloudDoc}
+        onSelectDoc={handleSelectNote}
         onNewNote={handleNewDoc}
+        currentUser={currentUser}
       />
 
       {/* Floating Micro Toast Notifications */}

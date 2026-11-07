@@ -105,3 +105,18 @@
   transform: translateY(8px) scale(0.97) !important;
   transition-duration: 180ms !important;
 }
+
+/* Left slide-over drawer spring */
+.drawer-spring {
+  transition: transform 260ms var(--ease-spring), opacity 260ms var(--ease-spring);
+  will-change: transform, opacity;
+}
+.drawer-spring-entering,
+.drawer-spring-exiting {
+  transform: translateX(-100%) !important;
+  opacity: 0.5 !important;
+}
+.drawer-spring-entered {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+}
