@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=7d701aa637f6">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=da662f48708f">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -68,6 +68,19 @@
               <span style="margin-left:12px;"><input type="checkbox" id="theme-checkbox"><label for="theme-checkbox">Dark mode</label></span>
             </div>
             <div id="save-status" class="save-status" aria-live="polite"></div>
+            <div id="auth-container" class="auth-container">
+              <button type="button" id="sign-in-btn" class="menu-btn auth-btn">Sign In</button>
+              <div class="dropdown hidden" id="user-dropdown">
+                <button type="button" id="user-menu-btn" class="menu-btn" aria-haspopup="true" aria-expanded="false">
+                  <span id="user-display-name">Account</span> ▾
+                </button>
+                <div class="dropdown-content" id="user-dropdown-content" role="menu">
+                  <button type="button" id="my-notes-btn" role="menuitem">My Notes</button>
+                  <button type="button" id="new-cloud-note-btn" role="menuitem">New Cloud Note</button>
+                  <button type="button" id="sign-out-btn" role="menuitem">Sign Out</button>
+                </div>
+              </div>
+            </div>
         </div>
         <div id="github"><a href="https://github.com/tanabe/markdown-live-preview"><img src="image/GitHub-Mark-Light-32px.webp"></a></div>
     </header>
@@ -90,5 +103,47 @@
     </div>
 
     <footer></footer>
+
+    <!-- Auth Dialog -->
+    <dialog id="auth-dialog" class="app-dialog">
+      <div class="dialog-header">
+        <h2>Sign In</h2>
+        <button type="button" class="close-dialog-btn" id="close-auth-dialog-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-subtitle">Sync your notes across devices with Supabase.</p>
+        <div id="auth-unconfigured-warning" class="auth-warning hidden">
+          Supabase is not configured yet. Add your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to <code>.env.local</code>.
+        </div>
+        <div class="oauth-buttons">
+          <button type="button" id="auth-google-btn" class="oauth-btn google-btn">Sign in with Google</button>
+          <button type="button" id="auth-github-btn" class="oauth-btn github-btn">Sign in with GitHub</button>
+        </div>
+        <div class="divider-text"><span>or via email magic link</span></div>
+        <form id="magic-link-form" class="magic-link-form">
+          <input type="email" id="auth-email-input" placeholder="name@example.com" required>
+          <button type="submit" id="auth-email-btn" class="submit-btn">Send Magic Link</button>
+        </form>
+        <div id="auth-status-msg" class="dialog-status-msg" aria-live="polite"></div>
+      </div>
+    </dialog>
+
+    <!-- My Notes Dialog -->
+    <dialog id="notes-dialog" class="app-dialog notes-dialog">
+      <div class="dialog-header">
+        <h2>My Cloud Notes</h2>
+        <button type="button" class="close-dialog-btn" id="close-notes-dialog-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="dialog-actions-bar">
+          <button type="button" id="dialog-new-note-btn" class="action-btn primary-btn">+ New Cloud Note</button>
+        </div>
+        <div id="notes-list-container" class="notes-list-container">
+          <div id="notes-loading" class="notes-loading">Loading notes...</div>
+          <ul id="notes-list" class="notes-list"></ul>
+          <div id="notes-empty" class="notes-empty hidden">No cloud notes saved yet. Create your first one!</div>
+        </div>
+      </div>
+    </dialog>
   </body>
 </html>

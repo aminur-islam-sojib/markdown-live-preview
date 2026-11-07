@@ -11,10 +11,31 @@ import {
     isMarkdownFile,
     readFileAsText
 } from './export/file-io';
+import { isSupabaseConfigured } from './supabase/client';
+import {
+    signInWithOAuth,
+    signInWithOtp,
+    signOut as supabaseSignOut,
+    onAuthStateChange
+} from './supabase/auth';
+import {
+    listCloudDocuments,
+    getCloudDocument,
+    createCloudDocument,
+    updateCloudDocument,
+    deleteCloudDocument
+} from './supabase/documents';
 
 const init = () => {
     let hasEdited = false;
     let scrollBarSync = false;
+    let currentUser = null;
+    let currentCloudDocId = null;
+
+    const deriveTitle = (markdown) => {
+        const match = markdown.match(/^#\s+(.+)$/m);
+        return match && match[1] ? match[1].trim() : 'Untitled Document';
+    };
 
     const saveStatusElement = document.querySelector('#save-status');
     const updateSaveStatus = (status) => {
@@ -24,7 +45,7 @@ const init = () => {
                 saveStatusElement.textContent = 'Saving...';
                 break;
             case 'saved':
-                saveStatusElement.textContent = 'Saved';
+                saveStatusElement.textContent = currentCloudDocId ? 'Saved (Cloud)' : 'Saved';
                 break;
             case 'unavailable':
                 saveStatusElement.textContent = 'Offline (unsaved)';
@@ -34,6 +55,20 @@ const init = () => {
                 break;
         }
     };
+
+    const syncToCloud = debounce(async (content) => {
+        if (!currentUser || !currentCloudDocId) return;
+        if (saveStatusElement) {
+            saveStatusElement.textContent = 'Syncing...';
+        }
+        const updated = await updateCloudDocument(currentCloudDocId, {
+            content,
+            title: deriveTitle(content)
+        });
+        if (saveStatusElement) {
+            saveStatusElement.textContent = updated ? 'Saved (Cloud)' : 'Cloud sync failed';
+        }
+    }, 600);
 
     const autosaveManager = new AutosaveManager({
         debounceMs: 300,
@@ -163,6 +198,9 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             let value = editor.getValue();
             debouncedConvert(value);
             autosaveManager.save(value);
+            if (currentUser && currentCloudDocId) {
+                syncToCloud(value);
+            }
         });
 
         editor.onDidScrollChange((e) => {
@@ -762,6 +800,263 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         });
     };
 
+    let setupAuthAndCloudNotes = (editor) => {
+        const signInBtn = document.querySelector('#sign-in-btn');
+        const userDropdown = document.querySelector('#user-dropdown');
+        const userMenuBtn = document.querySelector('#user-menu-btn');
+        const userDropdownContent = document.querySelector('#user-dropdown-content');
+        const userDisplayName = document.querySelector('#user-display-name');
+        const signOutBtn = document.querySelector('#sign-out-btn');
+
+        const authDialog = document.querySelector('#auth-dialog');
+        const closeAuthDialogBtn = document.querySelector('#close-auth-dialog-btn');
+        const authWarning = document.querySelector('#auth-unconfigured-warning');
+        const authGoogleBtn = document.querySelector('#auth-google-btn');
+        const authGithubBtn = document.querySelector('#auth-github-btn');
+        const magicLinkForm = document.querySelector('#magic-link-form');
+        const authEmailInput = document.querySelector('#auth-email-input');
+        const authStatusMsg = document.querySelector('#auth-status-msg');
+
+        const notesDialog = document.querySelector('#notes-dialog');
+        const closeNotesDialogBtn = document.querySelector('#close-notes-dialog-btn');
+        const myNotesBtn = document.querySelector('#my-notes-btn');
+        const newCloudNoteBtn = document.querySelector('#new-cloud-note-btn');
+        const dialogNewNoteBtn = document.querySelector('#dialog-new-note-btn');
+        const notesList = document.querySelector('#notes-list');
+        const notesLoading = document.querySelector('#notes-loading');
+        const notesEmpty = document.querySelector('#notes-empty');
+
+        const isConfigured = isSupabaseConfigured();
+
+        // Auth Dialog open/close
+        if (signInBtn && authDialog) {
+            signInBtn.addEventListener('click', () => {
+                if (authWarning) {
+                    if (isConfigured) {
+                        authWarning.classList.add('hidden');
+                    } else {
+                        authWarning.classList.remove('hidden');
+                    }
+                }
+                if (authStatusMsg) authStatusMsg.textContent = '';
+                authDialog.showModal();
+            });
+        }
+
+        if (closeAuthDialogBtn && authDialog) {
+            closeAuthDialogBtn.addEventListener('click', () => {
+                authDialog.close();
+            });
+        }
+
+        // OAuth Handlers
+        if (authGoogleBtn) {
+            authGoogleBtn.addEventListener('click', async () => {
+                const { error } = await signInWithOAuth('google');
+                if (error && authStatusMsg) {
+                    authStatusMsg.textContent = error.message;
+                }
+            });
+        }
+
+        if (authGithubBtn) {
+            authGithubBtn.addEventListener('click', async () => {
+                const { error } = await signInWithOAuth('github');
+                if (error && authStatusMsg) {
+                    authStatusMsg.textContent = error.message;
+                }
+            });
+        }
+
+        // Magic link form
+        if (magicLinkForm && authEmailInput) {
+            magicLinkForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = authEmailInput.value.trim();
+                if (!email) return;
+
+                if (authStatusMsg) authStatusMsg.textContent = 'Sending magic link...';
+                const { error } = await signInWithOtp(email);
+                if (authStatusMsg) {
+                    if (error) {
+                        authStatusMsg.textContent = error.message;
+                    } else {
+                        authStatusMsg.textContent = 'Magic login link sent! Please check your email inbox.';
+                    }
+                }
+            });
+        }
+
+        // User Dropdown toggle
+        if (userMenuBtn && userDropdownContent) {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = userDropdownContent.classList.toggle('show');
+                userMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (userDropdown && !userDropdown.contains(e.target)) {
+                    userDropdownContent.classList.remove('show');
+                    userMenuBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        // Sign Out
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', async () => {
+                if (userDropdownContent) userDropdownContent.classList.remove('show');
+                await supabaseSignOut();
+                currentCloudDocId = null;
+                if (saveStatusElement) saveStatusElement.textContent = 'Saved';
+            });
+        }
+
+        // Notes Dialog open/close
+        const closeNotesModal = () => {
+            if (notesDialog) notesDialog.close();
+        };
+
+        if (closeNotesDialogBtn) {
+            closeNotesDialogBtn.addEventListener('click', closeNotesModal);
+        }
+
+        const renderNotesList = async () => {
+            if (!notesList || !notesLoading || !notesEmpty) return;
+            notesList.innerHTML = '';
+            notesLoading.classList.remove('hidden');
+            notesEmpty.classList.add('hidden');
+
+            const docs = await listCloudDocuments();
+            notesLoading.classList.add('hidden');
+
+            if (docs.length === 0) {
+                notesEmpty.classList.remove('hidden');
+                return;
+            }
+
+            docs.forEach((doc) => {
+                const li = document.createElement('li');
+                li.className = 'note-item';
+
+                const info = document.createElement('div');
+                info.className = 'note-info';
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'note-title';
+                titleSpan.textContent = doc.title || 'Untitled Document';
+
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'note-date';
+                const updatedDate = new Date(doc.updated_at);
+                dateSpan.textContent = isNaN(updatedDate.getTime()) ? '' : `Updated ${updatedDate.toLocaleDateString()} ${updatedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                info.appendChild(titleSpan);
+                info.appendChild(dateSpan);
+
+                const actions = document.createElement('div');
+                actions.className = 'note-actions';
+
+                const openBtn = document.createElement('button');
+                openBtn.type = 'button';
+                openBtn.className = 'note-btn open-btn';
+                openBtn.textContent = 'Open';
+                openBtn.addEventListener('click', () => {
+                    currentCloudDocId = doc.id;
+                    presetValue(doc.content);
+                    autosaveManager.saveImmediately(doc.content);
+                    closeNotesModal();
+                    if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'note-btn delete-btn';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', async () => {
+                    const confirmed = window.confirm(`Are you sure you want to delete "${doc.title || 'Untitled'}"?`);
+                    if (!confirmed) return;
+                    deleteBtn.disabled = true;
+                    const success = await deleteCloudDocument(doc.id);
+                    if (success) {
+                        if (currentCloudDocId === doc.id) {
+                            currentCloudDocId = null;
+                            if (saveStatusElement) saveStatusElement.textContent = 'Saved';
+                        }
+                        renderNotesList();
+                    } else {
+                        deleteBtn.disabled = false;
+                        window.alert('Failed to delete document.');
+                    }
+                });
+
+                actions.appendChild(openBtn);
+                actions.appendChild(deleteBtn);
+
+                li.appendChild(info);
+                li.appendChild(actions);
+                notesList.appendChild(li);
+            });
+        };
+
+        if (myNotesBtn) {
+            myNotesBtn.addEventListener('click', () => {
+                if (userDropdownContent) userDropdownContent.classList.remove('show');
+                if (notesDialog) {
+                    notesDialog.showModal();
+                    renderNotesList();
+                }
+            });
+        }
+
+        const handleNewCloudNote = async () => {
+            const newDoc = await createCloudDocument('Untitled Document', defaultInput);
+            if (newDoc) {
+                currentCloudDocId = newDoc.id;
+                presetValue(defaultInput);
+                autosaveManager.saveImmediately(defaultInput);
+                closeNotesModal();
+                if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+            } else {
+                window.alert('Failed to create new cloud note.');
+            }
+        };
+
+        if (newCloudNoteBtn) {
+            newCloudNoteBtn.addEventListener('click', () => {
+                if (userDropdownContent) userDropdownContent.classList.remove('show');
+                handleNewCloudNote();
+            });
+        }
+
+        if (dialogNewNoteBtn) {
+            dialogNewNoteBtn.addEventListener('click', handleNewCloudNote);
+        }
+
+        // Listen for authentication changes
+        onAuthStateChange((user) => {
+            currentUser = user;
+            if (user) {
+                if (signInBtn) signInBtn.classList.add('hidden');
+                if (userDropdown) userDropdown.classList.remove('hidden');
+                if (userDisplayName) {
+                    const email = user.email || '';
+                    const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0] || 'Account';
+                    userDisplayName.textContent = name;
+                }
+                if (authDialog && authDialog.open) {
+                    authDialog.close();
+                }
+            } else {
+                if (signInBtn) signInBtn.classList.remove('hidden');
+                if (userDropdown) userDropdown.classList.add('hidden');
+                currentCloudDocId = null;
+                if (saveStatusElement) saveStatusElement.textContent = 'Saved';
+            }
+        });
+    };
+
     // ----- entry point -----
     let lastContent = autosaveManager.load(defaultInput);
     let editor = setupEditor();
@@ -771,6 +1066,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     setupCopyButton(editor);
     setupExportMenu(editor);
     setupDragAndDrop();
+    setupAuthAndCloudNotes(editor);
 
     let scrollBarSettings = loadScrollBarSettings() || false;
     initScrollBarSync(scrollBarSettings);
