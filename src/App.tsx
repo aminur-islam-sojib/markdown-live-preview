@@ -12,6 +12,7 @@ import { Footer } from './components/Footer';
 import { Toast, ToastData } from './components/Toast';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
 import { AutosaveManager, debounce } from './storage/autosave';
+import { saveLocalNote } from './storage/local-notes';
 import {
   downloadFile,
   deriveFilename,
@@ -24,7 +25,6 @@ import {
   createCloudDocument,
   updateCloudDocument,
   getCloudDocument,
-  CloudDocument
 } from './supabase/documents';
 
 const DEFAULT_MARKDOWN = `# Markdown syntax guide
@@ -171,6 +171,13 @@ export const App: React.FC = () => {
   // 5. Auth & Cloud State
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeCloudDocId, setActiveCloudDocId] = useState<string | null>(null);
+  const [activeLocalDocId, setActiveLocalDocId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('com.markdownlivepreview_active_local_id') || null;
+    } catch {
+      return null;
+    }
+  });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({
     text: 'Saved just now',
     type: 'saved'
@@ -217,6 +224,9 @@ export const App: React.FC = () => {
 
   const activeCloudDocIdRef = useRef(activeCloudDocId);
   activeCloudDocIdRef.current = activeCloudDocId;
+
+  const activeLocalDocIdRef = useRef(activeLocalDocId);
+  activeLocalDocIdRef.current = activeLocalDocId;
 
   // Refs
   const editorInstanceRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -367,6 +377,17 @@ export const App: React.FC = () => {
       // Save locally to localStorage without opening a disruptive modal
       autosaveRef.current?.saveImmediately(currentDocContent);
       setLastSavedContent(currentDocContent);
+
+      const saved = saveLocalNote({
+        id: activeLocalDocIdRef.current || undefined,
+        title: currentDocTitle,
+        content: currentDocContent
+      });
+      setActiveLocalDocId(saved.id);
+      try {
+        localStorage.setItem('com.markdownlivepreview_active_local_id', saved.id);
+      } catch {}
+
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
       setSaveStatus({ text: 'Saved locally', type: 'saved' });
@@ -526,8 +547,10 @@ export const App: React.FC = () => {
       autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
       setDocTitle('Untitled Document');
       setActiveCloudDocId(null);
+      setActiveLocalDocId(null);
       try {
         localStorage.removeItem('com.markdownlivepreview_doc_title');
+        localStorage.removeItem('com.markdownlivepreview_active_local_id');
       } catch {}
     }
   };
@@ -539,9 +562,12 @@ export const App: React.FC = () => {
     autosaveRef.current?.saveImmediately(blank);
     setDocTitle('Untitled Note');
     setActiveCloudDocId(null);
+    setActiveLocalDocId(null);
     try {
       localStorage.setItem('com.markdownlivepreview_doc_title', 'Untitled Note');
+      localStorage.removeItem('com.markdownlivepreview_active_local_id');
     } catch {}
+    showToast({ message: 'Created new note', type: 'info' });
   };
 
   const handleFormat = (type: 'bold' | 'italic' | 'link' | 'quote' | 'code') => {
@@ -644,11 +670,21 @@ export const App: React.FC = () => {
         }
       }
     } else {
+      const saved = saveLocalNote({
+        id: activeLocalDocIdRef.current || undefined,
+        title: cleanTitle,
+        content
+      });
+      setActiveLocalDocId(saved.id);
+      try {
+        localStorage.setItem('com.markdownlivepreview_active_local_id', saved.id);
+      } catch {}
+
       setLastSavedContent(content);
       setSaveStatus({ text: 'Saved just now', type: 'saved' });
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
-      showToast({ message: 'Saved locally', type: 'success' });
+      showToast({ message: 'Saved to browser storage', type: 'success' });
     }
   };
 
@@ -836,7 +872,7 @@ export const App: React.FC = () => {
       <NotesDrawer
         isOpen={isNotesDrawerOpen}
         onClose={() => setIsNotesDrawerOpen(false)}
-        activeDocId={activeCloudDocId}
+        activeDocId={activeCloudDocId || activeLocalDocId}
         onSelectNote={handleSelectNote}
         onNewNote={handleNewDoc}
         onOpenExplorerModal={() => setIsMyNotesModalOpen(true)}
@@ -847,7 +883,7 @@ export const App: React.FC = () => {
       <MyNotesModal
         isOpen={isMyNotesModalOpen}
         onClose={() => setIsMyNotesModalOpen(false)}
-        activeDocId={activeCloudDocId}
+        activeDocId={activeCloudDocId || activeLocalDocId}
         onSelectDoc={handleSelectNote}
         onNewNote={handleNewDoc}
         currentUser={currentUser}
