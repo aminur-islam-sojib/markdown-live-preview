@@ -40,9 +40,18 @@ const init = () => {
     };
 
     const saveStatusElement = document.querySelector('#save-status');
+    const saveStatusText = document.querySelector('#save-status-text');
     const activeDocBadge = document.querySelector('#active-doc-badge');
+    const docTabTitle = document.querySelector('#doc-tab-title');
+
+    const updateDocTab = (title) => {
+        if (!docTabTitle) return;
+        const clean = (title || 'Untitled').replace(/\.md$/i, '') + '.md';
+        docTabTitle.textContent = clean;
+    };
 
     const updateActiveDocBadge = (title) => {
+        updateDocTab(title);
         if (!activeDocBadge) return;
         if (currentCloudDocId && title) {
             activeDocBadge.textContent = `☁ ${title}`;
@@ -54,29 +63,40 @@ const init = () => {
         }
     };
 
-    const updateSaveStatus = (status) => {
+    const setStatusMessage = (text, type = 'saved') => {
         if (!saveStatusElement) return;
+        saveStatusElement.classList.remove('saving', 'offline', 'error');
+        if (type === 'saving') saveStatusElement.classList.add('saving');
+        else if (type === 'offline') saveStatusElement.classList.add('offline');
+        else if (type === 'error') saveStatusElement.classList.add('error');
+
+        if (saveStatusText) {
+            saveStatusText.textContent = text;
+        } else {
+            saveStatusElement.textContent = text;
+        }
+    };
+
+    const updateSaveStatus = (status) => {
         switch (status) {
             case 'saving':
-                saveStatusElement.textContent = 'Saving...';
+                setStatusMessage('Saving...', 'saving');
                 break;
             case 'saved':
-                saveStatusElement.textContent = currentCloudDocId ? 'Saved (Cloud)' : 'Saved';
+                setStatusMessage(currentCloudDocId ? 'Saved (Cloud)' : 'Saved just now', 'saved');
                 break;
             case 'unavailable':
-                saveStatusElement.textContent = 'Offline (unsaved)';
+                setStatusMessage('Offline (unsaved)', 'offline');
                 break;
             case 'error':
-                saveStatusElement.textContent = 'Save failed';
+                setStatusMessage('Save failed', 'error');
                 break;
         }
     };
 
     const syncToCloud = debounce(async (content) => {
         if (!currentUser || !currentCloudDocId) return;
-        if (saveStatusElement) {
-            saveStatusElement.textContent = 'Syncing...';
-        }
+        setStatusMessage('Syncing to Cloud...', 'saving');
         const title = deriveTitle(content);
         const updated = await updateCloudDocument(currentCloudDocId, {
             content,
@@ -84,9 +104,9 @@ const init = () => {
         });
         if (updated) {
             updateActiveDocBadge(updated.title || title);
-            if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+            setStatusMessage('Saved (Cloud)', 'saved');
         } else {
-            if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
+            setStatusMessage('Offline (Saved locally)', 'offline');
         }
     }, 500);
 
@@ -431,12 +451,18 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     // ----- theme toggle (dark/light) -----
     let setTheme = (enabled) => {
         document.documentElement.setAttribute('data-theme', enabled ? 'dark' : 'light');
+        const sun = document.querySelector('.theme-icon-sun');
+        const moon = document.querySelector('.theme-icon-moon');
+        if (sun && moon) {
+            sun.classList.toggle('hidden', enabled);
+            moon.classList.toggle('hidden', !enabled);
+        }
     };
 
     let initThemeToggle = (settings) => {
         let checkbox = document.querySelector('#theme-checkbox');
-        if (!checkbox) return;
-        checkbox.checked = settings;
+        let themeBtn = document.querySelector('#theme-toggle-btn');
+        if (checkbox) checkbox.checked = settings;
         setTheme(settings);
 
         // set Monaco editor theme to match page theme
@@ -446,16 +472,29 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         // set preview css to match theme
         setPreviewCss(settings);
 
-        checkbox.addEventListener('change', (event) => {
-            let checked = event.currentTarget.checked;
+        const applyThemeChange = (checked) => {
             setTheme(checked);
             saveThemeSettings(checked);
             setPreviewCss(checked);
+            if (checkbox) checkbox.checked = checked;
             if (monaco && monaco.editor && typeof monaco.editor.setTheme === 'function') {
                 monaco.editor.setTheme(checked ? 'vs-dark' : 'vs');
             }
             renderMermaidDiagrams();
-        });
+        };
+
+        if (checkbox) {
+            checkbox.addEventListener('change', (event) => {
+                applyThemeChange(event.currentTarget.checked);
+            });
+        }
+
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-theme') === 'dark';
+                applyThemeChange(!current);
+            });
+        }
     };
 
     let enableScrollBarSync = () => {
@@ -1311,6 +1350,16 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             dialogNewNoteBtn.addEventListener('click', handleNewCloudNote);
         }
 
+        const myNotesHeaderBtn = document.querySelector('#my-notes-header-btn');
+        if (myNotesHeaderBtn) {
+            myNotesHeaderBtn.addEventListener('click', () => {
+                if (notesDialog) {
+                    notesDialog.showModal();
+                    renderNotesList();
+                }
+            });
+        }
+
         // Listen for authentication changes
         onAuthStateChange((user) => {
             currentUser = user;
@@ -1321,6 +1370,10 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                     const email = user.email || '';
                     const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0] || 'Account';
                     userDisplayName.textContent = name;
+                    const avatarInitial = document.querySelector('#user-avatar-initial');
+                    if (avatarInitial) {
+                        avatarInitial.textContent = name.charAt(0).toUpperCase();
+                    }
                 }
                 if (authDialog && authDialog.open) {
                     authDialog.close();
@@ -1333,9 +1386,199 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 if (userDropdown) userDropdown.classList.add('hidden');
                 currentCloudDocId = null;
                 updateActiveDocBadge('');
-                if (saveStatusElement) saveStatusElement.textContent = 'Saved';
+                setStatusMessage('Saved just now');
             }
         });
+    };
+
+    const setupViewModeSwitcher = (editor) => {
+        const splitBtn = document.querySelector('#view-split-btn');
+        const editorBtn = document.querySelector('#view-editor-btn');
+        const previewBtn = document.querySelector('#view-preview-btn');
+
+        const editPane = document.querySelector('#edit');
+        const divider = document.querySelector('#split-divider');
+        const previewPane = document.querySelector('#preview');
+
+        if (!splitBtn || !editorBtn || !previewBtn || !editPane || !divider || !previewPane) return;
+
+        const setViewMode = (mode) => {
+            const btns = [
+                { id: 'split', btn: splitBtn },
+                { id: 'editor', btn: editorBtn },
+                { id: 'preview', btn: previewBtn }
+            ];
+
+            btns.forEach(({ id, btn }) => {
+                const isActive = id === mode;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+            });
+
+            if (mode === 'split') {
+                editPane.style.display = '';
+                editPane.style.width = '50%';
+                divider.style.display = '';
+                previewPane.style.display = '';
+                previewPane.style.width = '50%';
+            } else if (mode === 'editor') {
+                editPane.style.display = '';
+                editPane.style.width = '100%';
+                divider.style.display = 'none';
+                previewPane.style.display = 'none';
+            } else if (mode === 'preview') {
+                editPane.style.display = 'none';
+                divider.style.display = 'none';
+                previewPane.style.display = '';
+                previewPane.style.width = '100%';
+            }
+
+            if (editor && typeof editor.layout === 'function') {
+                setTimeout(() => editor.layout(), 20);
+            }
+        };
+
+        splitBtn.addEventListener('click', () => setViewMode('split'));
+        editorBtn.addEventListener('click', () => setViewMode('editor'));
+        previewBtn.addEventListener('click', () => setViewMode('preview'));
+    };
+
+    const setupFormattingToolbar = (editor) => {
+        const fmtBold = document.querySelector('#fmt-bold');
+        const fmtItalic = document.querySelector('#fmt-italic');
+        const fmtLink = document.querySelector('#fmt-link');
+        const fmtQuote = document.querySelector('#fmt-quote');
+        const fmtCode = document.querySelector('#fmt-code');
+
+        const applyFormat = (type) => {
+            if (!editor) return;
+            const selection = editor.getSelection();
+            const model = editor.getModel();
+            if (!selection || !model) return;
+
+            const selected = model.getValueInRange(selection);
+            let replacement = '';
+
+            switch (type) {
+                case 'bold':
+                    replacement = `**${selected || 'bold text'}**`;
+                    break;
+                case 'italic':
+                    replacement = `*${selected || 'italic text'}*`;
+                    break;
+                case 'link':
+                    replacement = `[${selected || 'link text'}](https://example.com)`;
+                    break;
+                case 'quote':
+                    replacement = selected
+                        ? selected.split('\n').map((l) => `> ${l}`).join('\n')
+                        : '> quote text';
+                    break;
+                case 'code':
+                    if (selected.includes('\n')) {
+                        replacement = `\`\`\`\n${selected}\n\`\`\``;
+                    } else {
+                        replacement = `\`${selected || 'code'}\``;
+                    }
+                    break;
+            }
+
+            editor.executeEdits('formatting-toolbar', [{
+                range: selection,
+                text: replacement,
+                forceMoveMarkers: true
+            }]);
+            editor.focus();
+        };
+
+        if (fmtBold) fmtBold.addEventListener('click', () => applyFormat('bold'));
+        if (fmtItalic) fmtItalic.addEventListener('click', () => applyFormat('italic'));
+        if (fmtLink) fmtLink.addEventListener('click', () => applyFormat('link'));
+        if (fmtQuote) fmtQuote.addEventListener('click', () => applyFormat('quote'));
+        if (fmtCode) fmtCode.addEventListener('click', () => applyFormat('code'));
+    };
+
+    const setupFooterStats = (editor) => {
+        const cursorEl = document.querySelector('#footer-cursor-pos');
+        const wordsEl = document.querySelector('#footer-word-count');
+        const readTimeEl = document.querySelector('#footer-read-time');
+
+        if (cursorEl && editor) {
+            editor.onDidChangeCursorPosition((e) => {
+                cursorEl.textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+            });
+        }
+
+        const updateStats = (val) => {
+            if (!wordsEl && !readTimeEl) return;
+            const text = (val || '').trim();
+            const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+            const minutes = Math.max(1, Math.ceil(words / 200));
+
+            if (wordsEl) wordsEl.textContent = `${words} ${words === 1 ? 'word' : 'words'}`;
+            if (readTimeEl) readTimeEl.textContent = `${minutes} min read`;
+        };
+
+        if (editor) {
+            editor.onDidChangeModelContent(() => {
+                updateStats(editor.getValue());
+            });
+            updateStats(editor.getValue());
+        }
+    };
+
+    const setupFullscreenToggle = () => {
+        const btn = document.querySelector('#fullscreen-toggle-btn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        });
+    };
+
+    const setupToolbarActions = (editor) => {
+        const copyBtn = document.querySelector('#toolbar-copy-btn');
+        const resetBtn = document.querySelector('#toolbar-reset-btn');
+
+        if (copyBtn && editor) {
+            copyBtn.addEventListener('click', () => {
+                const text = editor.getValue();
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalTitle = copyBtn.getAttribute('title') || 'Copy Markdown';
+                    copyBtn.setAttribute('title', 'Copied!');
+                    setTimeout(() => {
+                        copyBtn.setAttribute('title', originalTitle);
+                    }, 1500);
+                }).catch(() => {});
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', reset);
+        }
+    };
+
+    const setupDocumentTabs = () => {
+        const closeTabBtn = document.querySelector('#close-doc-tab-btn');
+        const newTabBtn = document.querySelector('#new-tab-btn');
+
+        if (closeTabBtn) {
+            closeTabBtn.addEventListener('click', reset);
+        }
+
+        if (newTabBtn) {
+            newTabBtn.addEventListener('click', () => {
+                const newNoteBtn = document.querySelector('#new-cloud-note-btn');
+                if (newNoteBtn) {
+                    newNoteBtn.click();
+                } else {
+                    reset();
+                }
+            });
+        }
     };
 
     // ----- entry point -----
@@ -1348,6 +1591,12 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     setupExportMenu(editor);
     setupDragAndDrop();
     setupAuthAndCloudNotes(editor);
+    setupViewModeSwitcher(editor);
+    setupFormattingToolbar(editor);
+    setupFooterStats(editor);
+    setupFullscreenToggle();
+    setupToolbarActions(editor);
+    setupDocumentTabs();
 
     let scrollBarSettings = loadScrollBarSettings() || false;
     initScrollBarSync(scrollBarSettings);

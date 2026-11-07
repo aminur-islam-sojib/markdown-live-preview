@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=77bdb7568aa1">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=a12970363ddb">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -48,45 +48,210 @@
 
   <body>
 
-    <header>
-        <div id="menu-items">
-            <div><a href="/">Markdown Live Preview</a></div>
-            <div><button type="button" id="open-button">Open</button></div>
-            <input type="file" id="open-file-input" accept=".md,.markdown,text/markdown" hidden>
-            <div id="copy-button"><a href="#">Copy</a></div>
-            <div class="dropdown" id="export-dropdown">
-              <button type="button" id="export-dropdown-btn" class="menu-btn" aria-haspopup="true" aria-expanded="false">Export ▾</button>
-              <div class="dropdown-content" id="export-dropdown-content" role="menu">
-                <button type="button" id="export-md-btn" role="menuitem">Export Markdown (.md)</button>
-                <button type="button" id="export-html-btn" role="menuitem">Export HTML (.html)</button>
-                <button type="button" id="export-pdf-btn" role="menuitem">Export PDF</button>
-              </div>
-            </div>
-            <div id="reset-button"><a href="#">Reset</a></div>
-            <div id="sync-button">
-              <input type="checkbox" id="sync-scroll-checkbox"><label for="sync-scroll-checkbox">Sync scroll</label>
-              <span style="margin-left:12px;"><input type="checkbox" id="theme-checkbox"><label for="theme-checkbox">Dark mode</label></span>
-            </div>
-            <div id="save-status" class="save-status" aria-live="polite"></div>
-            <span id="active-doc-badge" class="active-doc-badge hidden" title="Active cloud document"></span>
-            <button type="button" id="header-save-cloud-btn" class="menu-btn save-cloud-btn" title="Save current note to cloud">☁ Save to Cloud</button>
-            <div id="auth-container" class="auth-container">
-              <button type="button" id="sign-in-btn" class="menu-btn auth-btn">Sign In</button>
-              <div class="dropdown hidden" id="user-dropdown">
-                <button type="button" id="user-menu-btn" class="menu-btn" aria-haspopup="true" aria-expanded="false">
-                  <span id="user-display-name">Account</span> ▾
-                </button>
-                <div class="dropdown-content" id="user-dropdown-content" role="menu">
-                  <button type="button" id="my-notes-btn" role="menuitem">My Notes</button>
-                  <button type="button" id="save-current-note-btn" role="menuitem">Save Current Note to Cloud</button>
-                  <button type="button" id="new-cloud-note-btn" role="menuitem">New Cloud Note</button>
-                  <button type="button" id="sign-out-btn" role="menuitem">Sign Out</button>
-                </div>
-              </div>
-            </div>
+    <!-- Main Top Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <!-- Logo -->
+        <a href="/" class="app-logo-link" title="Markdown Live Preview">
+          <div class="app-logo-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <span class="app-logo-text">Markview</span>
+        </a>
+
+        <!-- Document Tabs -->
+        <div class="doc-tabs-container">
+          <div class="doc-tab active" id="active-doc-tab" title="Active Document">
+            <span class="doc-tab-name" id="doc-tab-title">Untitled.md</span>
+            <button type="button" class="doc-tab-close" id="close-doc-tab-btn" aria-label="Clear document">&times;</button>
+          </div>
+          <button type="button" class="doc-tab-add" id="new-tab-btn" title="New Note" aria-label="New Note">+</button>
         </div>
-        <div id="github"><a href="https://github.com/tanabe/markdown-live-preview"><img src="image/GitHub-Mark-Light-32px.webp"></a></div>
+      </div>
+
+      <div class="header-right">
+        <!-- Save Status Badge -->
+        <div id="save-status" class="save-status-badge" aria-live="polite">
+          <svg class="status-icon" viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+            <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
+          </svg>
+          <span id="save-status-text">Saved just now</span>
+        </div>
+        <span id="active-doc-badge" class="active-doc-badge hidden" title="Active cloud document"></span>
+
+        <!-- Open File (Hidden Input) -->
+        <input type="file" id="open-file-input" accept=".md,.markdown,text/markdown" hidden>
+        <button type="button" id="open-button" class="header-outline-btn" title="Open local file">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Open</span>
+        </button>
+
+        <!-- My Notes Dialog Button -->
+        <button type="button" id="my-notes-header-btn" class="header-outline-btn" title="View my notes">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Preview</span>
+        </button>
+
+        <!-- Export Dropdown -->
+        <div class="dropdown" id="export-dropdown">
+          <button type="button" id="export-dropdown-btn" class="header-outline-btn" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Export</span>
+            <span class="chevron">▾</span>
+          </button>
+          <div class="dropdown-content" id="export-dropdown-content" role="menu">
+            <button type="button" id="export-md-btn" role="menuitem">Export Markdown (.md)</button>
+            <button type="button" id="export-html-btn" role="menuitem">Export HTML (.html)</button>
+            <button type="button" id="export-pdf-btn" role="menuitem">Export PDF</button>
+          </div>
+        </div>
+
+        <!-- Primary Save Button -->
+        <button type="button" id="header-save-cloud-btn" class="header-primary-btn" title="Save note to cloud">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Save</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button type="button" id="theme-toggle-btn" class="header-icon-btn" title="Toggle theme" aria-label="Toggle theme">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="theme-icon-moon hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <input type="checkbox" id="theme-checkbox" hidden>
+
+        <!-- Fullscreen Toggle -->
+        <button type="button" id="fullscreen-toggle-btn" class="header-icon-btn" title="Toggle Fullscreen" aria-label="Toggle fullscreen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        </button>
+
+        <!-- Account / User Menu -->
+        <div id="auth-container" class="auth-container">
+          <button type="button" id="sign-in-btn" class="header-outline-btn auth-sign-in-btn">Sign In</button>
+          <div class="dropdown hidden" id="user-dropdown">
+            <button type="button" id="user-menu-btn" class="avatar-btn" aria-haspopup="true" aria-expanded="false" title="Account">
+              <span id="user-avatar-initial" class="avatar-initial">A</span>
+            </button>
+            <div class="dropdown-content dropdown-content-right" id="user-dropdown-content" role="menu">
+              <div class="dropdown-header">
+                <span id="user-display-name" class="dropdown-user-name">Account</span>
+              </div>
+              <button type="button" id="my-notes-btn" role="menuitem">My Notes</button>
+              <button type="button" id="save-current-note-btn" role="menuitem">Save Current Note to Cloud</button>
+              <button type="button" id="new-cloud-note-btn" role="menuitem">New Cloud Note</button>
+              <button type="button" id="sign-out-btn" role="menuitem">Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
+
+    <!-- Secondary Sub-header Toolbar -->
+    <div class="secondary-toolbar">
+      <div class="toolbar-left">
+        <!-- View Mode Segmented Control -->
+        <div class="segmented-control" role="radiogroup" aria-label="View Mode">
+          <button type="button" id="view-split-btn" class="seg-btn active" role="radio" aria-checked="true" title="Split View">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+            </svg>
+            <span>Split</span>
+          </button>
+          <button type="button" id="view-editor-btn" class="seg-btn" role="radio" aria-checked="false" title="Editor Only">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>Editor</span>
+          </button>
+          <button type="button" id="view-preview-btn" class="seg-btn" role="radio" aria-checked="false" title="Preview Only">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Preview</span>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Markdown Quick Formatting Buttons -->
+        <div class="formatting-toolbar">
+          <button type="button" id="fmt-bold" class="fmt-btn" title="Bold (Ctrl+B)">B</button>
+          <button type="button" id="fmt-italic" class="fmt-btn" title="Italic (Ctrl+I)"><em>I</em></button>
+          <button type="button" id="fmt-link" class="fmt-btn" title="Insert Link (Ctrl+K)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </button>
+          <button type="button" id="fmt-quote" class="fmt-btn" title="Quote">❝</button>
+          <button type="button" id="fmt-code" class="fmt-btn" title="Code block">&lt;/&gt;</button>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <!-- Sync Scroll Switch -->
+        <label class="switch-toggle" for="sync-scroll-checkbox">
+          <input type="checkbox" id="sync-scroll-checkbox">
+          <span class="switch-slider"></span>
+          <span class="switch-label">Sync scroll</span>
+        </label>
+
+        <!-- Hidden legacy elements preserved for compatibility -->
+        <div id="copy-button" class="hidden"><a href="#">Copy</a></div>
+        <div id="reset-button" class="hidden"><a href="#">Reset</a></div>
+
+        <!-- Toolbar Copy Button -->
+        <button type="button" id="toolbar-copy-btn" class="header-icon-btn" title="Copy Markdown to Clipboard" aria-label="Copy Markdown">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+
+        <!-- Toolbar Reset Button -->
+        <button type="button" id="toolbar-reset-btn" class="header-icon-btn" title="Reset content to demo" aria-label="Reset content">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+        </button>
+      </div>
+    </div>
 
     <div id="container" class="split-container">
 
@@ -105,7 +270,27 @@
         </div>
     </div>
 
-    <footer></footer>
+    <!-- Modern Status Bar Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-item">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Markdown
+        </span>
+        <span class="footer-divider">•</span>
+        <span class="footer-item" id="footer-cursor-pos">Ln 1, Col 1</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-item" id="footer-word-count">0 words</span>
+        <span class="footer-divider">•</span>
+        <span class="footer-item" id="footer-read-time">1 min read</span>
+        <span class="footer-divider">•</span>
+        <a href="https://github.com/tanabe/markdown-live-preview" target="_blank" rel="noopener noreferrer" class="footer-attribution" title="Open original GitHub repo">GitHub</a>
+      </div>
+    </footer>
 
     <!-- Auth Dialog -->
     <dialog id="auth-dialog" class="app-dialog">
