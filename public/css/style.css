@@ -1172,9 +1172,112 @@ footer {
   color: #24292f;
 }
 
-.form-group input:focus {
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background-color: #fff;
+  color: #24292f;
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
   border-color: #0969da;
   box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+/* Save Note Dialog Styles */
+.save-dialog {
+  max-width: 480px;
+  border-radius: 12px;
+}
+
+.form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.field-optional {
+  font-size: 11px;
+  color: #8c959f;
+  font-weight: 400;
+}
+
+.visibility-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.vis-btn {
+  border: none;
+  background: transparent;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #57606a;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.vis-btn:hover {
+  color: #24292f;
+}
+
+.vis-btn.active {
+  background-color: #ffffff;
+  color: #24292f;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.save-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #eaeef2;
+}
+
+.text-cancel-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #57606a;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.text-cancel-btn:hover {
+  color: #24292f;
+}
+
+.save-footer-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .full-width {
@@ -1575,4 +1678,50 @@ footer {
   background-color: rgba(46, 160, 67, 0.15);
   color: #3fb950;
   border-color: rgba(46, 160, 67, 0.4);
+}
+
+[data-theme="dark"] .form-group textarea {
+  background-color: #161b22;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .form-group textarea:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.2);
+}
+
+[data-theme="dark"] .field-optional {
+  color: #6e7681;
+}
+
+[data-theme="dark"] .visibility-segmented {
+  background-color: #161b22;
+  border-color: #30363d;
+}
+
+[data-theme="dark"] .vis-btn {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .vis-btn:hover {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .vis-btn.active {
+  background-color: #212830;
+  color: #e6edf3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .save-dialog-footer {
+  border-top-color: #30363d;
+}
+
+[data-theme="dark"] .text-cancel-btn {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .text-cancel-btn:hover {
+  color: #e6edf3;
 }

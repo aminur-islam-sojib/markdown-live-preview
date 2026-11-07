@@ -33,6 +33,7 @@ const init = () => {
     let scrollBarSync = false;
     let currentUser = null;
     let currentCloudDocId = null;
+    let currentDocTitle = 'Untitled Document';
 
     const deriveTitle = (markdown) => {
         const match = markdown.match(/^#\s+(.+)$/m);
@@ -48,6 +49,7 @@ const init = () => {
         if (!docTabTitle) return;
         const clean = (title || 'Untitled').replace(/\.md$/i, '') + '.md';
         docTabTitle.textContent = clean;
+        currentDocTitle = title || 'Untitled Document';
     };
 
     const updateActiveDocBadge = (title) => {
@@ -387,7 +389,12 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             }
         }
         currentCloudDocId = null;
+        currentDocTitle = 'Untitled Document';
+        try {
+            localStorage.removeItem('com.markdownlivepreview_doc_title');
+        } catch {}
         updateActiveDocBadge('');
+        updateDocTab('Untitled Document');
         presetValue(defaultInput);
         autosaveManager.saveImmediately(defaultInput);
         document.querySelectorAll('.column').forEach((element) => {
@@ -606,6 +613,12 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
             presetValue(content);
             autosaveManager.saveImmediately(content);
+            const baseName = file.name ? file.name.replace(/\.md$/i, '') : deriveTitle(content);
+            currentDocTitle = baseName;
+            try {
+                localStorage.setItem('com.markdownlivepreview_doc_title', baseName);
+            } catch {}
+            updateDocTab(baseName);
             document.querySelector('#preview').scrollTo({ top: 0 });
         });
     };
@@ -736,6 +749,12 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 const content = await readFileAsText(file);
                 presetValue(content);
                 autosaveManager.saveImmediately(content);
+                const baseName = file.name ? file.name.replace(/\.md$/i, '') : deriveTitle(content);
+                currentDocTitle = baseName;
+                try {
+                    localStorage.setItem('com.markdownlivepreview_doc_title', baseName);
+                } catch {}
+                updateDocTab(baseName);
                 document.querySelector('#preview')?.scrollTo({ top: 0 });
             } catch (err) {
                 window.alert('Unable to read this file. Please try again.');
@@ -1206,6 +1225,10 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                         }
 
                         currentCloudDocId = doc.id;
+                        currentDocTitle = doc.title || 'Untitled Document';
+                        try {
+                            localStorage.setItem('com.markdownlivepreview_doc_title', currentDocTitle);
+                        } catch {}
                         presetValue(noteContent);
                         autosaveManager.saveImmediately(noteContent);
                         updateActiveDocBadge(doc.title || 'Untitled Document');
@@ -1261,77 +1284,19 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             });
         }
 
-        const handleSaveToCloud = async () => {
-            if (!currentUser) {
-                if (authDialog) {
-                    authDialog.showModal();
-                }
-                return;
-            }
-
-            const content = editor.getValue();
-            const title = deriveTitle(content);
-
-            const headerSaveBtn = document.querySelector('#header-save-cloud-btn');
-            if (headerSaveBtn) {
-                headerSaveBtn.disabled = true;
-                headerSaveBtn.textContent = 'Saving...';
-            }
-            if (saveStatusElement) {
-                saveStatusElement.textContent = 'Saving to Cloud...';
-            }
-
-            try {
-                if (currentCloudDocId) {
-                    const updated = await updateCloudDocument(currentCloudDocId, { content, title });
-                    if (updated) {
-                        updateActiveDocBadge(updated.title || title);
-                        if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
-                    } else {
-                        if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
-                    }
-                } else {
-                    const newDoc = await createCloudDocument(title, content);
-                    if (newDoc) {
-                        currentCloudDocId = newDoc.id;
-                        updateActiveDocBadge(newDoc.title || title);
-                        if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
-                    } else {
-                        if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to save to cloud:', err);
-                if (saveStatusElement) saveStatusElement.textContent = 'Save failed';
-            } finally {
-                if (headerSaveBtn) {
-                    headerSaveBtn.disabled = false;
-                    headerSaveBtn.textContent = '☁ Save to Cloud';
-                }
-            }
-        };
-
-        const headerSaveCloudBtn = document.querySelector('#header-save-cloud-btn');
-        if (headerSaveCloudBtn) {
-            headerSaveCloudBtn.addEventListener('click', handleSaveToCloud);
-        }
-
-        const saveCurrentNoteBtn = document.querySelector('#save-current-note-btn');
-        if (saveCurrentNoteBtn) {
-            saveCurrentNoteBtn.addEventListener('click', () => {
-                if (userDropdownContent) userDropdownContent.classList.remove('show');
-                handleSaveToCloud();
-            });
-        }
-
         const handleNewCloudNote = async () => {
             const initialContent = '# Untitled Note\n\nStart writing your note here...\n';
             const newDoc = await createCloudDocument('Untitled Note', initialContent);
             if (newDoc) {
                 currentCloudDocId = newDoc.id;
+                currentDocTitle = newDoc.title || 'Untitled Note';
+                try {
+                    localStorage.setItem('com.markdownlivepreview_doc_title', currentDocTitle);
+                } catch {}
                 presetValue(initialContent);
                 autosaveManager.saveImmediately(initialContent);
                 updateActiveDocBadge(newDoc.title);
+                updateDocTab(newDoc.title);
                 closeNotesModal();
                 if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
             } else {
@@ -1389,6 +1354,208 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 setStatusMessage('Saved just now');
             }
         });
+    };
+
+    const setupSaveNoteDialog = (editor) => {
+        const saveDialog = document.querySelector('#save-note-dialog');
+        const closeBtn = document.querySelector('#close-save-dialog-btn');
+        const cancelBtn = document.querySelector('#cancel-save-dialog-btn');
+        const saveForm = document.querySelector('#save-note-form');
+        const titleInput = document.querySelector('#save-input-title');
+        const descInput = document.querySelector('#save-input-desc');
+        const tagsInput = document.querySelector('#save-input-tags');
+        const visButtons = document.querySelectorAll('.visibility-segmented .vis-btn');
+        const statusMsg = document.querySelector('#save-dialog-status');
+        const downloadDirectBtn = document.querySelector('#download-md-direct-btn');
+        const confirmSaveBtn = document.querySelector('#confirm-save-btn');
+        const headerSaveBtn = document.querySelector('#header-save-cloud-btn');
+        const saveCurrentNoteBtn = document.querySelector('#save-current-note-btn');
+        const userDropdownContent = document.querySelector('#user-dropdown-content');
+
+        let selectedVisibility = 'private';
+
+        visButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                visButtons.forEach((b) => {
+                    const isSelected = b === btn;
+                    b.classList.toggle('active', isSelected);
+                    b.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+                });
+                selectedVisibility = btn.getAttribute('data-vis') || 'private';
+            });
+        });
+
+        const openSaveDialog = () => {
+            if (!saveDialog) return;
+            const content = editor.getValue();
+            const derived = deriveTitle(content);
+            let initialTitle = currentDocTitle;
+            if (!initialTitle || initialTitle === 'Untitled Document') {
+                initialTitle = (derived && derived !== 'Untitled Document') ? derived : 'Untitled Document';
+            }
+
+            if (titleInput) {
+                titleInput.value = initialTitle.replace(/\.md$/i, '');
+            }
+
+            if (statusMsg) {
+                statusMsg.textContent = '';
+                statusMsg.className = 'dialog-status-msg hidden';
+            }
+
+            if (confirmSaveBtn) {
+                confirmSaveBtn.disabled = false;
+                confirmSaveBtn.textContent = 'Save';
+            }
+
+            saveDialog.showModal();
+
+            if (titleInput) {
+                setTimeout(() => {
+                    titleInput.focus();
+                    titleInput.select();
+                }, 50);
+            }
+        };
+
+        const closeSaveDialog = () => {
+            if (saveDialog && saveDialog.open) {
+                saveDialog.close();
+                if (editor && typeof editor.focus === 'function') {
+                    editor.focus();
+                }
+            }
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeSaveDialog);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeSaveDialog);
+
+        if (saveDialog) {
+            saveDialog.addEventListener('click', (e) => {
+                if (e.target === saveDialog) {
+                    closeSaveDialog();
+                }
+            });
+        }
+
+        if (downloadDirectBtn) {
+            downloadDirectBtn.addEventListener('click', () => {
+                const enteredTitle = titleInput?.value.trim() || currentDocTitle || 'Untitled Document';
+                const filename = enteredTitle.replace(/\.md$/i, '') + '.md';
+                const content = editor.getValue();
+                downloadFile(content, filename, 'text/markdown');
+                updateDocTab(enteredTitle);
+                closeSaveDialog();
+                setStatusMessage('Downloaded .md', 'saved');
+            });
+        }
+
+        if (saveForm) {
+            saveForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = titleInput?.value.trim();
+                if (!title) {
+                    if (statusMsg) {
+                        statusMsg.textContent = 'Please enter a title.';
+                        statusMsg.className = 'dialog-status-msg status-error';
+                        statusMsg.classList.remove('hidden');
+                    }
+                    titleInput?.focus();
+                    return;
+                }
+
+                if (confirmSaveBtn) {
+                    confirmSaveBtn.disabled = true;
+                    confirmSaveBtn.textContent = 'Saving...';
+                }
+
+                const content = editor.getValue();
+                currentDocTitle = title;
+                updateDocTab(title);
+
+                try {
+                    localStorage.setItem('com.markdownlivepreview_doc_title', title);
+                    const meta = {
+                        title,
+                        description: descInput?.value.trim() || '',
+                        tags: tagsInput?.value.trim() || '',
+                        visibility: selectedVisibility
+                    };
+                    localStorage.setItem(`com.markdownlivepreview_meta_${title}`, JSON.stringify(meta));
+                } catch {}
+
+                autosaveManager.saveImmediately(content);
+
+                if (currentUser) {
+                    try {
+                        if (currentCloudDocId) {
+                            const updated = await updateCloudDocument(currentCloudDocId, { content, title });
+                            if (updated) {
+                                updateActiveDocBadge(updated.title || title);
+                                setStatusMessage('Saved (Cloud)', 'saved');
+                            } else {
+                                setStatusMessage('Offline (Saved locally)', 'offline');
+                            }
+                        } else {
+                            const newDoc = await createCloudDocument(title, content);
+                            if (newDoc) {
+                                currentCloudDocId = newDoc.id;
+                                updateActiveDocBadge(newDoc.title || title);
+                                setStatusMessage('Saved (Cloud)', 'saved');
+                            } else {
+                                setStatusMessage('Offline (Saved locally)', 'offline');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to save to cloud:', err);
+                        setStatusMessage('Saved locally (Cloud sync failed)', 'offline');
+                    }
+                } else {
+                    updateActiveDocBadge(title);
+                    setStatusMessage('Saved just now', 'saved');
+                }
+
+                if (confirmSaveBtn) {
+                    confirmSaveBtn.disabled = false;
+                    confirmSaveBtn.textContent = 'Save';
+                }
+
+                closeSaveDialog();
+            });
+        }
+
+        if (headerSaveBtn) {
+            headerSaveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openSaveDialog();
+            });
+        }
+
+        if (saveCurrentNoteBtn) {
+            saveCurrentNoteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (userDropdownContent) userDropdownContent.classList.remove('show');
+                openSaveDialog();
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                openSaveDialog();
+            }
+        });
+
+        if (editor && typeof editor.addCommand === 'function') {
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                openSaveDialog();
+            });
+        }
+
+        return {
+            openSaveDialog,
+            closeSaveDialog
+        };
     };
 
     const setupViewModeSwitcher = (editor) => {
@@ -1585,12 +1752,23 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     let lastContent = autosaveManager.load(defaultInput);
     let editor = setupEditor();
     presetValue(lastContent);
+
+    let initialDocTitle = 'Untitled Document';
+    try {
+        initialDocTitle = localStorage.getItem('com.markdownlivepreview_doc_title') || '';
+    } catch {}
+    if (!initialDocTitle && lastContent) {
+        initialDocTitle = deriveTitle(lastContent);
+    }
+    updateDocTab(initialDocTitle || 'Untitled Document');
+
     setupOpenButton();
     setupResetButton();
     setupCopyButton(editor);
     setupExportMenu(editor);
     setupDragAndDrop();
     setupAuthAndCloudNotes(editor);
+    setupSaveNoteDialog(editor);
     setupViewModeSwitcher(editor);
     setupFormattingToolbar(editor);
     setupFooterStats(editor);

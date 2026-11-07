@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=a12970363ddb">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=636f8aa34274">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -291,6 +291,93 @@
         <a href="https://github.com/tanabe/markdown-live-preview" target="_blank" rel="noopener noreferrer" class="footer-attribution" title="Open original GitHub repo">GitHub</a>
       </div>
     </footer>
+
+    <!-- Save Note Dialog (Modal triggered by Save button or Ctrl+S) -->
+    <dialog id="save-note-dialog" class="app-dialog save-dialog">
+      <div class="dialog-header">
+        <div>
+          <h2 id="save-dialog-title">Save your note</h2>
+          <p class="dialog-subtitle" style="margin-bottom:0; margin-top:2px;">Title is required. Everything else is optional.</p>
+        </div>
+        <button type="button" class="close-dialog-btn" id="close-save-dialog-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <form id="save-note-form">
+          <!-- Title -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="save-input-title">Title</label>
+            </div>
+            <input type="text" id="save-input-title" placeholder="e.g. My Notes in Markdown" required autocomplete="off">
+          </div>
+
+          <!-- Description -->
+          <div class="form-group" style="margin-top: 12px;">
+            <div class="form-label-row">
+              <label for="save-input-desc">Description</label>
+              <span class="field-optional">optional</span>
+            </div>
+            <textarea id="save-input-desc" rows="3" placeholder="What is this note about?"></textarea>
+          </div>
+
+          <!-- Tags -->
+          <div class="form-group" style="margin-top: 12px;">
+            <div class="form-label-row">
+              <label for="save-input-tags">Tags</label>
+              <span class="field-optional">optional</span>
+            </div>
+            <input type="text" id="save-input-tags" placeholder="Add tags...">
+          </div>
+
+          <!-- Who can see this / Visibility -->
+          <div class="form-group" style="margin-top: 14px;">
+            <div class="form-label-row">
+              <label>Who can see this?</label>
+            </div>
+            <div class="visibility-segmented" role="radiogroup" aria-label="Visibility">
+              <button type="button" class="vis-btn" data-vis="public" role="radio" aria-checked="false">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span>Public</span>
+              </button>
+              <button type="button" class="vis-btn" data-vis="unlisted" role="radio" aria-checked="false">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                <span>Unlisted</span>
+              </button>
+              <button type="button" class="vis-btn active" data-vis="private" role="radio" aria-checked="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>Private</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Save status feedback -->
+          <div id="save-dialog-status" class="dialog-status-msg hidden" aria-live="polite"></div>
+
+          <!-- Dialog footer buttons -->
+          <div class="save-dialog-footer">
+            <button type="button" id="cancel-save-dialog-btn" class="text-cancel-btn">Cancel</button>
+            <div class="save-footer-right">
+              <button type="button" id="download-md-direct-btn" class="header-outline-btn" title="Download as .md file">
+                Download .md
+              </button>
+              <button type="submit" id="confirm-save-btn" class="header-primary-btn">
+                Save
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </dialog>
 
     <!-- Auth Dialog -->
     <dialog id="auth-dialog" class="app-dialog">
