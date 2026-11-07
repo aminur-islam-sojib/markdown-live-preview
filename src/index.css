@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "github-markdown-css/github-markdown.css";
+
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 149, 159, 0.35);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 149, 159, 0.6);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(110, 118, 129, 0.4);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 118, 129, 0.7);
+}
+
+/* Base styles for preview & mermaid */
+.markdown-body {
+  background-color: transparent !important;
+  color: inherit !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif !important;
+}
+
+.markdown-body pre.mermaid {
+  background-color: transparent !important;
+  border: none !important;
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+}
