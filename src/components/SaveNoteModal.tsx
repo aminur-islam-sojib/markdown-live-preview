@@ -442,9 +442,11 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
             </div>
 
             {/* Divider */}
-            <div className="relative flex items-center justify-center my-2">
-              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-              <span className="bg-white dark:bg-slate-900 px-2 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+            <div className="relative flex items-center justify-center my-2.5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+              </div>
+              <span className="relative z-10 bg-white dark:bg-slate-900 px-2.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold whitespace-nowrap">
                 or with email
               </span>
             </div>
