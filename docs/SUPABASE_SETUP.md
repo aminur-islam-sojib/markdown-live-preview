@@ -9,12 +9,13 @@ This guide explains how to connect your Supabase project to Markdown Live Previe
 1. Go to [supabase.com](https://supabase.com) and create or open your project.
 2. In your Project Settings -> **API**, locate your:
    - **Project URL**
-   - **Project API Anon Key**
+   - **Project API Publishable / Anon Key**
 3. Create a local `.env.local` file in your repository:
    ```env
    VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-public-key
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
    ```
+   *(Note: `VITE_SUPABASE_ANON_KEY` is also supported for older projects)*
 
 ---
 

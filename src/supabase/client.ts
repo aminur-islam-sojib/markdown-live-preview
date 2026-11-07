@@ -3,12 +3,20 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 let cachedClient: SupabaseClient | null = null;
 
 /**
+ * Retrieves the public/anon key, supporting both the latest VITE_SUPABASE_PUBLISHABLE_KEY
+ * convention and the legacy VITE_SUPABASE_ANON_KEY.
+ */
+function getSupabaseKey(): string | undefined {
+  return import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+}
+
+/**
  * Checks whether Supabase environment variables are present and valid.
  */
 export function isSupabaseConfigured(): boolean {
   const url = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return Boolean(url && anonKey && url.startsWith('http'));
+  const key = getSupabaseKey();
+  return Boolean(url && key && url.startsWith('http'));
 }
 
 /**
@@ -27,9 +35,10 @@ export function getSupabase(): SupabaseClient | null {
 
   try {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const key = getSupabaseKey();
+    if (!url || !key) return null;
 
-    cachedClient = createClient(url, anonKey, {
+    cachedClient = createClient(url, key, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
