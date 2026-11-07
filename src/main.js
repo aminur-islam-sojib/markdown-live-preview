@@ -1213,6 +1213,9 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 if (authDialog && authDialog.open) {
                     authDialog.close();
                 }
+                if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token=')) {
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
             } else {
                 if (signInBtn) signInBtn.classList.remove('hidden');
                 if (userDropdown) userDropdown.classList.add('hidden');

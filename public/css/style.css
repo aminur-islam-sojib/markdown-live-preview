@@ -629,6 +629,13 @@ footer {
   transition: background-color 0.15s ease;
 }
 
+.oauth-icon {
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 .oauth-btn:hover {
   background-color: #eaeef2;
 }
