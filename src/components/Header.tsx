@@ -15,7 +15,9 @@ import {
   Minimize2,
   User,
   LogOut,
-  Cloud
+  Cloud,
+  Check,
+  Edit2
 } from 'lucide-react';
 import { SaveStatus, Theme } from '../types';
 
@@ -37,6 +39,8 @@ interface HeaderProps {
   currentUser: any;
   onOpenAuth: () => void;
   onSignOut: () => void;
+  justSaved?: boolean;
+  onEditNoteDetails?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -56,7 +60,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleFullscreen,
   currentUser,
   onOpenAuth,
-  onSignOut
+  onSignOut,
+  justSaved = false,
+  onEditNoteDetails
 }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -114,14 +120,21 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Tab strip */}
         <div className="flex items-center gap-1.5 overflow-hidden pl-1 border-l border-slate-200 dark:border-slate-800">
           <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 max-w-[200px] truncate"
-            title={docTitle}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 max-w-[200px] truncate ${
+              activeCloudDocId ? 'hover:border-blue-400 dark:hover:border-blue-500' : ''
+            }`}
+            title={activeCloudDocId ? `${docTitle} (Click to edit details)` : docTitle}
           >
-            <span className="truncate">{docTitle.endsWith('.md') ? docTitle : `${docTitle}.md`}</span>
+            <span
+              onClick={activeCloudDocId ? onEditNoteDetails : undefined}
+              className={`truncate ${activeCloudDocId ? 'cursor-pointer hover:underline' : ''}`}
+            >
+              {docTitle.endsWith('.md') ? docTitle : `${docTitle}.md`}
+            </span>
             <button
               type="button"
               onClick={onResetDoc}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition shrink-0"
               aria-label="Clear document"
               title="Reset document"
             >
@@ -244,11 +257,28 @@ export const Header: React.FC<HeaderProps> = ({
           ref={saveButtonRef}
           type="button"
           onClick={onSaveClick}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition shadow-xs shadow-blue-500/20"
-          title="Save note (Ctrl+S)"
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white transition shadow-xs ${
+            justSaved
+              ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+              : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-blue-500/20'
+          }`}
+          title={
+            currentUser && activeCloudDocId
+              ? 'Click or press Ctrl+S to save immediately to cloud'
+              : 'Save note (Ctrl+S)'
+          }
         >
-          <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />
-          <span>Save</span>
+          {justSaved ? (
+            <>
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Saved!</span>
+            </>
+          ) : (
+            <>
+              <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Save</span>
+            </>
+          )}
         </button>
 
         {/* Theme Toggle */}
@@ -303,6 +333,19 @@ export const Header: React.FC<HeaderProps> = ({
                   <Bookmark className="w-3.5 h-3.5" />
                   <span>My Notes</span>
                 </button>
+                {activeCloudDocId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onEditNoteDetails?.();
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Note Details & Tags</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {

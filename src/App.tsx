@@ -173,6 +173,7 @@ export const App: React.FC = () => {
     text: 'Saved just now',
     type: 'saved'
   });
+  const [justSaved, setJustSaved] = useState<boolean>(false);
 
   // 6. Modal Open States
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -180,6 +181,19 @@ export const App: React.FC = () => {
   const [isMyNotesModalOpen, setIsMyNotesModalOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Refs for fresh state access in callbacks/shortcuts
+  const contentRef = useRef(content);
+  contentRef.current = content;
+
+  const docTitleRef = useRef(docTitle);
+  docTitleRef.current = docTitle;
+
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+
+  const activeCloudDocIdRef = useRef(activeCloudDocId);
+  activeCloudDocIdRef.current = activeCloudDocId;
 
   // Refs
   const editorInstanceRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -271,17 +285,50 @@ export const App: React.FC = () => {
     preview.scrollTo({ top: targetY });
   };
 
+  // Handle Save Trigger (Button click or Ctrl+S)
+  const handleSaveTrigger = useCallback(async (forceOpenModal = false) => {
+    const user = currentUserRef.current;
+    const docId = activeCloudDocIdRef.current;
+    const currentDocContent = contentRef.current;
+    const currentDocTitle = docTitleRef.current;
+
+    // If logged in and this note has already been saved to cloud once, save directly!
+    if (!forceOpenModal && user && docId) {
+      setSaveStatus({ text: 'Saving to Cloud...', type: 'saving' });
+      try {
+        const updated = await updateCloudDocument(docId, {
+          content: currentDocContent,
+          title: currentDocTitle
+        });
+        if (updated) {
+          setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
+          setJustSaved(true);
+          setTimeout(() => setJustSaved(false), 1500);
+        } else {
+          setSaveStatus({ text: 'Offline (Saved locally)', type: 'offline' });
+        }
+      } catch (err) {
+        console.error('Failed to sync to cloud:', err);
+        setSaveStatus({ text: 'Save failed', type: 'error' });
+      }
+      return;
+    }
+
+    // Otherwise (guest, or first-time save, or explicitly editing note details), open modal!
+    setIsSaveModalOpen(true);
+  }, []);
+
   // Keyboard shortcut Ctrl+S
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        setIsSaveModalOpen(true);
+        handleSaveTrigger();
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
+  }, [handleSaveTrigger]);
 
   // Split Divider Dragging
   useEffect(() => {
@@ -504,16 +551,22 @@ export const App: React.FC = () => {
         });
         if (updated) {
           setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
+          setJustSaved(true);
+          setTimeout(() => setJustSaved(false), 1500);
         }
       } else {
         const newDoc = await createCloudDocument(cleanTitle, content);
         if (newDoc) {
           setActiveCloudDocId(newDoc.id);
           setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
+          setJustSaved(true);
+          setTimeout(() => setJustSaved(false), 1500);
         }
       }
     } else {
       setSaveStatus({ text: 'Saved just now', type: 'saved' });
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1500);
     }
   };
 
@@ -559,7 +612,9 @@ export const App: React.FC = () => {
         onOpenFile={handleOpenFile}
         onOpenMyNotes={() => setIsMyNotesModalOpen(true)}
         onExport={handleExport}
-        onSaveClick={() => setIsSaveModalOpen((prev) => !prev)}
+        onSaveClick={() => handleSaveTrigger()}
+        onEditNoteDetails={() => handleSaveTrigger(true)}
+        justSaved={justSaved}
         saveButtonRef={saveButtonRef}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
@@ -612,7 +667,7 @@ export const App: React.FC = () => {
               value={content}
               onChange={handleContentChange}
               onCursorChange={setCursorPosition}
-              onSaveTrigger={() => setIsSaveModalOpen(true)}
+              onSaveTrigger={() => handleSaveTrigger()}
               theme={theme}
               onScrollChange={handleEditorScroll}
               editorRef={editorInstanceRef}
@@ -668,6 +723,8 @@ export const App: React.FC = () => {
         currentTitle={docTitle}
         onSave={handleSaveNote}
         onDownloadMd={handleDownloadMd}
+        currentUser={currentUser}
+        isExistingNote={Boolean(activeCloudDocId)}
       />
 
       {/* Auth Modal */}
