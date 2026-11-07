@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=636f8aa34274">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=4aa69dcbdebb">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -294,43 +294,64 @@
 
     <!-- Save Note Dialog (Modal triggered by Save button or Ctrl+S) -->
     <dialog id="save-note-dialog" class="app-dialog save-dialog">
-      <div class="dialog-header">
-        <div>
-          <h2 id="save-dialog-title">Save your note</h2>
-          <p class="dialog-subtitle" style="margin-bottom:0; margin-top:2px;">Title is required. Everything else is optional.</p>
+      <div class="dialog-header save-dialog-header">
+        <div class="save-dialog-header-info">
+          <div class="save-dialog-icon-badge">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </div>
+          <div>
+            <h2 id="save-dialog-title">Save your note</h2>
+            <p class="dialog-subtitle">Title is required. Everything else is optional.</p>
+          </div>
         </div>
-        <button type="button" class="close-dialog-btn" id="close-save-dialog-btn" aria-label="Close dialog">&times;</button>
+        <button type="button" class="close-dialog-btn round-close-btn" id="close-save-dialog-btn" aria-label="Close dialog">&times;</button>
       </div>
-      <div class="dialog-body">
+      <div class="dialog-body save-dialog-body">
         <form id="save-note-form">
           <!-- Title -->
           <div class="form-group">
             <div class="form-label-row">
               <label for="save-input-title">Title</label>
+              <span class="field-required">required</span>
             </div>
-            <input type="text" id="save-input-title" placeholder="e.g. My Notes in Markdown" required autocomplete="off">
+            <div class="input-with-extension">
+              <input type="text" id="save-input-title" placeholder="e.g. My Notes" required autocomplete="off">
+              <span class="file-extension-badge">.md</span>
+            </div>
           </div>
 
           <!-- Description -->
-          <div class="form-group" style="margin-top: 12px;">
+          <div class="form-group" style="margin-top: 14px;">
             <div class="form-label-row">
               <label for="save-input-desc">Description</label>
               <span class="field-optional">optional</span>
             </div>
-            <textarea id="save-input-desc" rows="3" placeholder="What is this note about?"></textarea>
+            <textarea id="save-input-desc" rows="2" placeholder="What is this note about?"></textarea>
           </div>
 
           <!-- Tags -->
-          <div class="form-group" style="margin-top: 12px;">
+          <div class="form-group" style="margin-top: 14px;">
             <div class="form-label-row">
               <label for="save-input-tags">Tags</label>
               <span class="field-optional">optional</span>
             </div>
-            <input type="text" id="save-input-tags" placeholder="Add tags...">
+            <div class="input-with-prefix">
+              <svg class="input-prefix-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="9" x2="20" y2="9"/>
+                <line x1="4" y1="15" x2="20" y2="15"/>
+                <line x1="10" y1="3" x2="8" y2="21"/>
+                <line x1="16" y1="3" x2="14" y2="21"/>
+              </svg>
+              <input type="text" id="save-input-tags" placeholder="Add tags...">
+            </div>
           </div>
 
           <!-- Who can see this / Visibility -->
-          <div class="form-group" style="margin-top: 14px;">
+          <div class="form-group" style="margin-top: 16px;">
             <div class="form-label-row">
               <label>Who can see this?</label>
             </div>
@@ -367,11 +388,19 @@
           <div class="save-dialog-footer">
             <button type="button" id="cancel-save-dialog-btn" class="text-cancel-btn">Cancel</button>
             <div class="save-footer-right">
-              <button type="button" id="download-md-direct-btn" class="header-outline-btn" title="Download as .md file">
-                Download .md
+              <button type="button" id="download-md-direct-btn" class="save-dialog-btn-outline" title="Download as .md file">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Download .md</span>
               </button>
-              <button type="submit" id="confirm-save-btn" class="header-primary-btn">
-                Save
+              <button type="submit" id="confirm-save-btn" class="save-dialog-btn-primary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Save</span>
               </button>
             </div>
           </div>

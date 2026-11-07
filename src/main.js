@@ -1373,6 +1373,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         const userDropdownContent = document.querySelector('#user-dropdown-content');
 
         let selectedVisibility = 'private';
+        let isClosing = false;
 
         visButtons.forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -1385,8 +1386,37 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             });
         });
 
-        const openSaveDialog = () => {
+        const positionSaveDialog = () => {
             if (!saveDialog) return;
+            const saveBtn = document.querySelector('#header-save-cloud-btn');
+            if (!saveBtn) return;
+            const rect = saveBtn.getBoundingClientRect();
+            const dialogWidth = Math.min(440, window.innerWidth - 24);
+
+            // Directly below the save button + 8px gap
+            const top = Math.round(rect.bottom + 8);
+
+            // Compute right offset to anchor near the right of the save button
+            let right = Math.round(window.innerWidth - rect.right);
+            if (right < 12) right = 12;
+            if (window.innerWidth - right - dialogWidth < 12) {
+                right = Math.max(12, window.innerWidth - dialogWidth - 12);
+            }
+
+            saveDialog.style.setProperty('--save-dialog-top', `${top}px`);
+            saveDialog.style.setProperty('--save-dialog-right', `${right}px`);
+
+            // Compute arrow position pointing to center of save button
+            const btnCenter = rect.left + rect.width / 2;
+            const dialogLeft = window.innerWidth - right - dialogWidth;
+            const arrowPos = Math.max(20, Math.min(dialogWidth - 20, btnCenter - dialogLeft));
+            saveDialog.style.setProperty('--save-arrow-left', `${arrowPos}px`);
+        };
+
+        const openSaveDialog = () => {
+            if (!saveDialog || isClosing) return;
+            positionSaveDialog();
+
             const content = editor.getValue();
             const derived = deriveTitle(content);
             let initialTitle = currentDocTitle;
@@ -1405,38 +1435,66 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
             if (confirmSaveBtn) {
                 confirmSaveBtn.disabled = false;
-                confirmSaveBtn.textContent = 'Save';
+                confirmSaveBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Save</span>
+                `;
             }
 
+            saveDialog.classList.remove('closing');
             saveDialog.showModal();
+            positionSaveDialog();
 
             if (titleInput) {
                 setTimeout(() => {
                     titleInput.focus();
                     titleInput.select();
-                }, 50);
+                }, 40);
             }
         };
 
         const closeSaveDialog = () => {
-            if (saveDialog && saveDialog.open) {
+            if (!saveDialog || !saveDialog.open || isClosing) return;
+            isClosing = true;
+            saveDialog.classList.add('closing');
+            setTimeout(() => {
                 saveDialog.close();
+                saveDialog.classList.remove('closing');
+                isClosing = false;
                 if (editor && typeof editor.focus === 'function') {
                     editor.focus();
                 }
-            }
+            }, 160);
         };
 
         if (closeBtn) closeBtn.addEventListener('click', closeSaveDialog);
         if (cancelBtn) cancelBtn.addEventListener('click', closeSaveDialog);
 
         if (saveDialog) {
+            saveDialog.addEventListener('cancel', (e) => {
+                e.preventDefault();
+                closeSaveDialog();
+            });
+
             saveDialog.addEventListener('click', (e) => {
-                if (e.target === saveDialog) {
+                const rect = saveDialog.getBoundingClientRect();
+                const isInDialog = (
+                    rect.top <= e.clientY && e.clientY <= rect.bottom &&
+                    rect.left <= e.clientX && e.clientX <= rect.right
+                );
+                if (!isInDialog) {
                     closeSaveDialog();
                 }
             });
         }
+
+        window.addEventListener('resize', () => {
+            if (saveDialog && saveDialog.open) {
+                positionSaveDialog();
+            }
+        });
 
         if (downloadDirectBtn) {
             downloadDirectBtn.addEventListener('click', () => {
@@ -1466,7 +1524,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
                 if (confirmSaveBtn) {
                     confirmSaveBtn.disabled = true;
-                    confirmSaveBtn.textContent = 'Saving...';
+                    confirmSaveBtn.innerHTML = `<span>Saving...</span>`;
                 }
 
                 const content = editor.getValue();
@@ -1517,7 +1575,12 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
                 if (confirmSaveBtn) {
                     confirmSaveBtn.disabled = false;
-                    confirmSaveBtn.textContent = 'Save';
+                    confirmSaveBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>Save</span>
+                    `;
                 }
 
                 closeSaveDialog();
@@ -1527,7 +1590,11 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         if (headerSaveBtn) {
             headerSaveBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                openSaveDialog();
+                if (saveDialog && saveDialog.open) {
+                    closeSaveDialog();
+                } else {
+                    openSaveDialog();
+                }
             });
         }
 
