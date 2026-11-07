@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { signInWithPassword, signUpWithPassword, signInWithOtp, signInWithOAuth } from '../supabase/auth';
 import { isSupabaseConfigured } from '../supabase/client';
+import { useModalAnimation } from '../hooks/useModalAnimation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,7 +18,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'error' | 'success' | 'info'; message: string } | null>(null);
 
-  if (!isOpen) return null;
+  const { isMounted, phase } = useModalAnimation(isOpen, 200);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isMounted) return null;
 
   const isConfigured = isSupabaseConfigured();
 
@@ -88,12 +102,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+        className={`fixed inset-0 bg-slate-900/40 dark:bg-black/60 modal-backdrop modal-backdrop-${phase}`}
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-xs">
+      <div className={`relative w-full max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8)] ring-1 ring-black/5 dark:ring-white/10 z-10 dialog-spring dialog-spring-${phase} overflow-hidden text-xs`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -104,7 +118,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
             aria-label="Close"
           >
             <X className="w-4 h-4" />

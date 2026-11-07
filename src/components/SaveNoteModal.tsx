@@ -16,6 +16,7 @@ import {
 import { Visibility } from '../types';
 import { signInWithPassword, signUpWithPassword, signInWithOAuth } from '../supabase/auth';
 import { isSupabaseConfigured } from '../supabase/client';
+import { useModalAnimation } from '../hooks/useModalAnimation';
 
 interface SaveNoteModalProps {
   isOpen: boolean;
@@ -103,6 +104,8 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
     return () => window.removeEventListener('resize', updatePosition);
   }, [isOpen, currentTitle, anchorRef, currentUser]);
 
+  const { isMounted, phase } = useModalAnimation(isOpen, 200);
+
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -114,7 +117,7 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isMounted) return null;
 
   const isConfigured = isSupabaseConfigured();
 
@@ -177,10 +180,10 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden pointer-events-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/20 dark:bg-slate-950/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+        className={`fixed inset-0 bg-slate-900/30 dark:bg-black/60 modal-backdrop modal-backdrop-${phase}`}
         onClick={onClose}
       />
 
@@ -191,12 +194,12 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
           top: `${coords.top}px`,
           right: `${coords.right}px`
         }}
-        className="fixed w-[calc(100vw-24px)] max-w-[440px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 transition-colors"
+        className={`fixed w-[calc(100vw-24px)] max-w-[440px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.22),0_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.75),0_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-black/5 dark:ring-white/10 z-50 popover-spring popover-spring-${phase} transition-colors`}
       >
         {/* Caret pointing up to Save button */}
         <div
           style={{ left: `${coords.arrowLeft}px` }}
-          className="absolute -top-[6px] -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-900 border-t border-l border-slate-200 dark:border-slate-800 rotate-45 pointer-events-none"
+          className="absolute -top-[6px] -translate-x-1/2 w-3 h-3 bg-white/95 dark:bg-slate-900/95 border-t border-l border-slate-200/90 dark:border-slate-800/90 rotate-45 pointer-events-none"
         />
 
         {/* Modal Header */}
@@ -226,7 +229,7 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
             aria-label="Close"
           >
             <X className="w-4 h-4" />

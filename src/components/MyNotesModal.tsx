@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, FolderOpen, Loader2, Bookmark, Calendar } from 'lucide-react';
 import { listCloudDocuments, deleteCloudDocument, CloudDocument } from '../supabase/documents';
+import { useModalAnimation } from '../hooks/useModalAnimation';
 
 interface MyNotesModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
 
+  const { isMounted, phase } = useModalAnimation(isOpen, 200);
+
   const loadDocuments = async () => {
     setLoading(true);
     const data = await listCloudDocuments();
@@ -34,7 +37,18 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isMounted) return null;
 
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`Are you sure you want to delete "${title || 'Untitled'}"?`)) return;
@@ -52,12 +66,12 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+        className={`fixed inset-0 bg-slate-900/40 dark:bg-black/60 modal-backdrop modal-backdrop-${phase}`}
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-10 animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-xs flex flex-col max-h-[80vh]">
+      <div className={`relative w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8)] ring-1 ring-black/5 dark:ring-white/10 z-10 dialog-spring dialog-spring-${phase} overflow-hidden text-xs flex flex-col max-h-[80vh]`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
@@ -71,7 +85,7 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
                 onNewNote();
                 onClose();
               }}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/60 active:scale-95 transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New</span>
@@ -79,7 +93,7 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
