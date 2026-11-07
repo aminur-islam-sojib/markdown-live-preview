@@ -225,9 +225,11 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
         {/* Top Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
-              <FileText className="w-4 h-4 stroke-[2.5]" />
-            </div>
+            <img
+              src="/image/markview.png"
+              alt="Markview"
+              className="w-8 h-8 rounded-lg object-contain shadow-xs"
+            />
             <div>
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Notes Explorer</h2>
               <p className="text-[11px] text-slate-400">Browse, preview and manage all your notes</p>

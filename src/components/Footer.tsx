@@ -32,11 +32,11 @@ export const Footer: React.FC<FooterProps> = ({ cursorPosition, content }) => {
         <span>{readTime} min read</span>
         <span className="text-slate-300 dark:text-slate-700">•</span>
         <a
-          href="https://github.com/tanabe/markdown-live-preview"
+          href="https://github.com/aminur-islam-sojib/markdown-live-preview"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-slate-700 dark:hover:text-slate-200 transition"
-          title="Original project by Hideaki Tanabe"
+          title="Markview GitHub Repository"
         >
           GitHub
         </a>

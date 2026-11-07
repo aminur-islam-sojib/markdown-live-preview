@@ -135,11 +135,13 @@ export const Header: React.FC<HeaderProps> = ({
         <a
           href="/"
           className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100 hover:opacity-90 shrink-0"
-          title="Markdown Live Preview"
+          title="Markview"
         >
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
-            <FileText className="w-4 h-4 stroke-[2.5]" />
-          </div>
+          <img
+            src="/image/markview.png"
+            alt="Markview"
+            className="w-8 h-8 rounded-lg object-contain shadow-xs"
+          />
           <span className="text-[15px] tracking-tight font-bold hidden sm:inline">Markview</span>
         </a>
 

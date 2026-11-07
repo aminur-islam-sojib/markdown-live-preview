@@ -205,9 +205,17 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 pb-3 border-b border-slate-100 dark:border-slate-800/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              {currentUser ? <Bookmark className="w-4 h-4" /> : <Cloud className="w-4 h-4" />}
-            </div>
+            {currentUser ? (
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Bookmark className="w-4 h-4" />
+              </div>
+            ) : (
+              <img
+                src="/image/markview.png"
+                alt="Markview"
+                className="w-8 h-8 rounded-lg object-contain shadow-xs shrink-0"
+              />
+            )}
             <div>
               <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {currentUser

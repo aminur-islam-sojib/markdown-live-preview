@@ -41,7 +41,7 @@
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/tanabe/markdown-live-preview.git
+git clone https://github.com/aminur-islam-sojib/markdown-live-preview.git
 cd markdown-live-preview
 npm install
 ```
@@ -119,7 +119,8 @@ Your documents belong to you:
 
 ## 📄 Credits & Attribution
 
-This project is derived from the open-source repository created by [Hideaki Tanabe (@tanabe)](https://github.com/tanabe/markdown-live-preview). We gratefully acknowledge and preserve the original work and attribution.
+Developed and maintained by [Aminur Islam Sojib](https://github.com/aminur-islam-sojib/markdown-live-preview).
+Derived from the open-source repository created by [Hideaki Tanabe (@tanabe)](https://github.com/tanabe/markdown-live-preview). We gratefully acknowledge and preserve the original work and attribution.
 
 ## 📜 License
 

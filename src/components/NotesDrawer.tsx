@@ -218,9 +218,11 @@ export const NotesDrawer: React.FC<NotesDrawerProps> = ({
         {/* Drawer Header */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs shadow-blue-500/20">
-              <FileText className="w-4 h-4 stroke-[2.5]" />
-            </div>
+            <img
+              src="/image/markview.png"
+              alt="Markview"
+              className="w-8 h-8 rounded-lg object-contain shadow-xs"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Notes Library</h2>
