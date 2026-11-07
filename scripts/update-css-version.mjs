@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync, realpathSync } from 'node:fs';
+import { readFileSync, writeFileSync, realpathSync, existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = new URL('../', import.meta.url);
@@ -10,8 +10,9 @@ export function updateCssVersions() {
     const versions = new Map(styles.map((name, index) => [name,
         createHash('sha256').update(readFileSync(cssFiles[index])).digest('hex').slice(0, 12)
     ]));
-    for (const name of ['index.html', 'src/main.js']) {
+    for (const name of ['index.html', 'src/main.tsx', 'src/main.js']) {
         const path = new URL(name, root);
+        if (!existsSync(path)) continue;
         const original = readFileSync(path, 'utf8');
         const updated = original.replace(/css\/([\w-]+\.css)\?v=[^'"\s]+/g,
             (url, file) => versions.has(file) ? `css/${file}?v=${versions.get(file)}` : url);

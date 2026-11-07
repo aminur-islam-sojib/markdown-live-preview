@@ -1,10 +1,12 @@
 {
   "name": "markdown-live-preview",
   "version": "1.0.0",
-  "description": "[Markdown Live Preview](https://markdownlivepreview.com/) is a tiny web tool to preview Markdown formatted text.",
+  "description": "A fast, privacy-first live Markdown editor and previewer in the browser with Monaco Editor, debounced autosave, sanitized rendering, Mermaid diagrams, and export options.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
     "update:css-version": "node scripts/update-css-version.mjs",
     "dev": "vite",
     "build": "vite build",
@@ -16,24 +18,49 @@
     "type": "git",
     "url": "git+https://github.com/tanabe/markdown-live-preview.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "markdown",
+    "markdown-editor",
+    "live-preview",
+    "monaco-editor",
+    "mermaid",
+    "dompurify",
+    "vite",
+    "typescript"
+  ],
+  "author": "Hideaki Tanabe (original author)",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/tanabe/markdown-live-preview/issues"
   },
   "homepage": "https://github.com/tanabe/markdown-live-preview#readme",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/dompurify": "^3.0.5",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.2",
     "http-server": "^14.1.1",
-    "vite": "^6.4.5"
+    "jsdom": "^31.0.0",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.5",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@supabase/supabase-js": "^2.119.0",
     "dompurify": "^3.4.17",
-    "firebase": "^13.2.0",
     "github-markdown-css": "^5.8.1",
+    "lucide-react": "^1.70.0",
     "marked": "^15.0.7",
     "mermaid": "^11.16.1",
     "monaco-editor": "^0.52.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "storehouse-js": "github:tanabe/Storehouse-js"
   }
 }
