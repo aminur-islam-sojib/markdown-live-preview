@@ -146,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Tab strip */}
         <div className="flex items-center gap-1.5 overflow-hidden pl-1 border-l border-slate-200 dark:border-slate-800">
           <div
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 max-w-[200px] truncate ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 max-w-50 truncate ${
               activeCloudDocId ? 'hover:border-blue-400 dark:hover:border-blue-500' : ''
             }`}
             title={activeCloudDocId ? `${docTitle} (Click to edit details)` : docTitle}
@@ -192,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
         {activeCloudDocId && (
           <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 mr-1">
             <Cloud className="w-3.5 h-3.5" />
-            <span className="truncate max-w-[100px]">{docTitle}</span>
+            <span className="truncate max-w-25">{docTitle}</span>
           </div>
         )}
 

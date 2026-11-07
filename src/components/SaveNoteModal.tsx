@@ -194,12 +194,12 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
           top: `${coords.top}px`,
           right: `${coords.right}px`
         }}
-        className={`fixed w-[calc(100vw-24px)] max-w-[440px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.22),0_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.75),0_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-black/5 dark:ring-white/10 z-50 popover-spring popover-spring-${phase} transition-colors`}
+        className={`fixed w-[calc(100vw-24px)] max-w-110 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.22),0_0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.75),0_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-black/5 dark:ring-white/10 z-50 popover-spring popover-spring-${phase} transition-colors`}
       >
         {/* Caret pointing up to Save button */}
         <div
           style={{ left: `${coords.arrowLeft}px` }}
-          className="absolute -top-[6px] -translate-x-1/2 w-3 h-3 bg-white/95 dark:bg-slate-900/95 border-t border-l border-slate-200/90 dark:border-slate-800/90 rotate-45 pointer-events-none"
+          className="absolute -top-1.5 -translate-x-1/2 w-3 h-3 bg-white/95 dark:bg-slate-900/95 border-t border-l border-slate-200/90 dark:border-slate-800/90 rotate-45 pointer-events-none"
         />
 
         {/* Modal Header */}
