@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=da662f48708f">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=5fe8c7c523fe">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -107,24 +107,73 @@
     <!-- Auth Dialog -->
     <dialog id="auth-dialog" class="app-dialog">
       <div class="dialog-header">
-        <h2>Sign In</h2>
+        <h2 id="auth-dialog-title">Sign In</h2>
         <button type="button" class="close-dialog-btn" id="close-auth-dialog-btn" aria-label="Close dialog">&times;</button>
       </div>
       <div class="dialog-body">
-        <p class="dialog-subtitle">Sync your notes across devices with Supabase.</p>
+        <p class="dialog-subtitle">Sync your markdown notes safely to the cloud.</p>
         <div id="auth-unconfigured-warning" class="auth-warning hidden">
-          Supabase is not configured yet. Add your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> to <code>.env.local</code>.
+          Supabase is not configured yet. Add your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> to <code>.env</code>.
         </div>
+
+        <!-- Auth Tabs -->
+        <div class="auth-tabs" role="tablist">
+          <button type="button" role="tab" id="tab-signin" class="auth-tab active" aria-selected="true" aria-controls="signin-form">Sign In</button>
+          <button type="button" role="tab" id="tab-signup" class="auth-tab" aria-selected="false" aria-controls="signup-form">Create Account</button>
+          <button type="button" role="tab" id="tab-magic" class="auth-tab" aria-selected="false" aria-controls="magic-link-form">Magic Link</button>
+        </div>
+
+        <div id="auth-status-msg" class="dialog-status-msg hidden" aria-live="polite"></div>
+
+        <!-- Email + Password Sign In Form -->
+        <form id="signin-form" class="auth-form" autocomplete="on">
+          <div class="form-group">
+            <label for="signin-email">Email</label>
+            <input type="email" id="signin-email" name="email" placeholder="name@example.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="signin-password">Password</label>
+            <input type="password" id="signin-password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button type="submit" id="signin-submit-btn" class="submit-btn full-width">Sign In</button>
+          <div class="form-switch-prompt">
+            Don't have an account? <button type="button" class="link-btn" id="switch-to-signup">Create one</button>
+          </div>
+        </form>
+
+        <!-- Email + Password Sign Up Form -->
+        <form id="signup-form" class="auth-form hidden" autocomplete="on">
+          <div class="form-group">
+            <label for="signup-email">Email</label>
+            <input type="email" id="signup-email" name="email" placeholder="name@example.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" name="password" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" required>
+          </div>
+          <button type="submit" id="signup-submit-btn" class="submit-btn full-width">Create Free Account</button>
+          <div class="form-switch-prompt">
+            Already have an account? <button type="button" class="link-btn" id="switch-to-signin">Sign In</button>
+          </div>
+        </form>
+
+        <!-- Magic Link Form -->
+        <form id="magic-link-form" class="auth-form hidden" autocomplete="on">
+          <div class="form-group">
+            <label for="magic-email">Email</label>
+            <input type="email" id="magic-email" name="email" placeholder="name@example.com" autocomplete="email" required>
+          </div>
+          <button type="submit" id="magic-submit-btn" class="submit-btn full-width">Send Magic Link</button>
+          <p class="form-hint">A passwordless sign-in link will be sent to your email.</p>
+        </form>
+
+        <div class="divider-text"><span>or continue with</span></div>
+
         <div class="oauth-buttons">
           <button type="button" id="auth-google-btn" class="oauth-btn google-btn">Sign in with Google</button>
           <button type="button" id="auth-github-btn" class="oauth-btn github-btn">Sign in with GitHub</button>
         </div>
-        <div class="divider-text"><span>or via email magic link</span></div>
-        <form id="magic-link-form" class="magic-link-form">
-          <input type="email" id="auth-email-input" placeholder="name@example.com" required>
-          <button type="submit" id="auth-email-btn" class="submit-btn">Send Magic Link</button>
-        </form>
-        <div id="auth-status-msg" class="dialog-status-msg" aria-live="polite"></div>
+        <p class="oauth-hint">Note: Google/GitHub requires OAuth provider configuration in your Supabase Dashboard.</p>
       </div>
     </dialog>
 

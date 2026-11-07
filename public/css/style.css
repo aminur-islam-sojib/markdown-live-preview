@@ -500,11 +500,117 @@ footer {
   color: #735c0f;
 }
 
+/* Auth Tabs & Forms */
+.auth-tabs {
+  display: flex;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 3px;
+  gap: 4px;
+  margin-bottom: 16px;
+  border: 1px solid #d0d7de;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #57606a;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.auth-tab:hover {
+  color: #24292f;
+}
+
+.auth-tab.active {
+  background-color: #fff;
+  color: #24292f;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.form-group input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background-color: #fff;
+  color: #24292f;
+}
+
+.form-group input:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+.full-width {
+  width: 100%;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0969da;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: #0550ae;
+}
+
+.form-switch-prompt {
+  text-align: center;
+  font-size: 12px;
+  color: #57606a;
+  margin-top: 4px;
+}
+
+.form-hint, .oauth-hint {
+  font-size: 11px;
+  color: #6e7781;
+  margin: 6px 0 0 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
 .oauth-buttons {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .oauth-btn {
@@ -551,23 +657,30 @@ footer {
   color: #6e7781;
 }
 
-.magic-link-form {
-  display: flex;
-  gap: 8px;
-}
-
-.magic-link-form input[type="email"] {
-  flex-grow: 1;
+.dialog-status-msg {
   padding: 8px 12px;
-  border: 1px solid #d0d7de;
   border-radius: 6px;
-  font-size: 13px;
-  outline: none;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 12px;
 }
 
-.magic-link-form input[type="email"]:focus {
-  border-color: #0969da;
-  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+.dialog-status-msg.status-error {
+  background-color: #ffebe9;
+  border: 1px solid rgba(255, 129, 130, 0.4);
+  color: #cf222e;
+}
+
+.dialog-status-msg.status-success {
+  background-color: #dafbe1;
+  border: 1px solid rgba(74, 194, 107, 0.4);
+  color: #1a7f37;
+}
+
+.dialog-status-msg.status-info {
+  background-color: #ddf4ff;
+  border: 1px solid rgba(84, 174, 255, 0.4);
+  color: #0969da;
 }
 
 .submit-btn, .action-btn {
@@ -586,11 +699,9 @@ footer {
   background-color: #2c974b;
 }
 
-.dialog-status-msg {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #0969da;
-  min-height: 18px;
+.submit-btn:disabled, .action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* My Notes dialog */
@@ -765,4 +876,70 @@ footer {
 
 [data-theme="dark"] .note-btn:hover {
   background-color: #30363d;
+}
+
+[data-theme="dark"] .auth-tabs {
+  background-color: #161b22;
+  border-color: #30363d;
+}
+
+[data-theme="dark"] .auth-tab {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .auth-tab:hover {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .auth-tab.active {
+  background-color: #212830;
+  color: #e6edf3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .form-group label {
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .form-group input {
+  background-color: #161b22;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+[data-theme="dark"] .form-group input:focus {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.2);
+}
+
+[data-theme="dark"] .link-btn {
+  color: #58a6ff;
+}
+
+[data-theme="dark"] .link-btn:hover {
+  color: #79c0ff;
+}
+
+[data-theme="dark"] .form-switch-prompt,
+[data-theme="dark"] .form-hint,
+[data-theme="dark"] .oauth-hint {
+  color: #8b949e;
+}
+
+[data-theme="dark"] .dialog-status-msg.status-error {
+  background-color: rgba(248, 81, 73, 0.15);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #ff7b72;
+}
+
+[data-theme="dark"] .dialog-status-msg.status-success {
+  background-color: rgba(46, 160, 67, 0.15);
+  border-color: rgba(46, 160, 67, 0.4);
+  color: #3fb950;
+}
+
+[data-theme="dark"] .dialog-status-msg.status-info {
+  background-color: rgba(56, 139, 253, 0.15);
+  border-color: rgba(56, 139, 253, 0.4);
+  color: #58a6ff;
 }

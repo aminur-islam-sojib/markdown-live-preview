@@ -13,6 +13,8 @@ import {
 } from './export/file-io';
 import { isSupabaseConfigured } from './supabase/client';
 import {
+    signInWithPassword,
+    signUpWithPassword,
     signInWithOAuth,
     signInWithOtp,
     signOut as supabaseSignOut,
@@ -809,13 +811,38 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         const signOutBtn = document.querySelector('#sign-out-btn');
 
         const authDialog = document.querySelector('#auth-dialog');
+        const authDialogTitle = document.querySelector('#auth-dialog-title');
         const closeAuthDialogBtn = document.querySelector('#close-auth-dialog-btn');
         const authWarning = document.querySelector('#auth-unconfigured-warning');
+        const authStatusMsg = document.querySelector('#auth-status-msg');
+
+        // Tabs
+        const tabSignIn = document.querySelector('#tab-signin');
+        const tabSignUp = document.querySelector('#tab-signup');
+        const tabMagic = document.querySelector('#tab-magic');
+
+        // Forms
+        const signinForm = document.querySelector('#signin-form');
+        const signinEmailInput = document.querySelector('#signin-email');
+        const signinPasswordInput = document.querySelector('#signin-password');
+        const signinSubmitBtn = document.querySelector('#signin-submit-btn');
+
+        const signupForm = document.querySelector('#signup-form');
+        const signupEmailInput = document.querySelector('#signup-email');
+        const signupPasswordInput = document.querySelector('#signup-password');
+        const signupSubmitBtn = document.querySelector('#signup-submit-btn');
+
+        const magicLinkForm = document.querySelector('#magic-link-form');
+        const magicEmailInput = document.querySelector('#magic-email');
+        const magicSubmitBtn = document.querySelector('#magic-submit-btn');
+
+        // Tab Switch Buttons
+        const switchToSignUp = document.querySelector('#switch-to-signup');
+        const switchToSignIn = document.querySelector('#switch-to-signin');
+
+        // OAuth Handlers
         const authGoogleBtn = document.querySelector('#auth-google-btn');
         const authGithubBtn = document.querySelector('#auth-github-btn');
-        const magicLinkForm = document.querySelector('#magic-link-form');
-        const authEmailInput = document.querySelector('#auth-email-input');
-        const authStatusMsg = document.querySelector('#auth-status-msg');
 
         const notesDialog = document.querySelector('#notes-dialog');
         const closeNotesDialogBtn = document.querySelector('#close-notes-dialog-btn');
@@ -828,6 +855,48 @@ This web site is using ${"`"}markedjs/marked${"`"}.
 
         const isConfigured = isSupabaseConfigured();
 
+        const showStatus = (message, type = 'info') => {
+            if (!authStatusMsg) return;
+            authStatusMsg.textContent = message;
+            authStatusMsg.className = `dialog-status-msg status-${type}`;
+            authStatusMsg.classList.remove('hidden');
+        };
+
+        const clearStatus = () => {
+            if (!authStatusMsg) return;
+            authStatusMsg.textContent = '';
+            authStatusMsg.className = 'dialog-status-msg hidden';
+        };
+
+        const switchTab = (tab) => {
+            clearStatus();
+            const tabConfigs = [
+                { id: 'signin', btn: tabSignIn, form: signinForm, title: 'Sign In' },
+                { id: 'signup', btn: tabSignUp, form: signupForm, title: 'Create Account' },
+                { id: 'magic', btn: tabMagic, form: magicLinkForm, title: 'Magic Link' }
+            ];
+
+            tabConfigs.forEach(({ id, btn, form, title }) => {
+                const isActive = id === tab;
+                if (btn) {
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                }
+                if (form) {
+                    form.classList.toggle('hidden', !isActive);
+                }
+                if (isActive && authDialogTitle) {
+                    authDialogTitle.textContent = title;
+                }
+            });
+        };
+
+        if (tabSignIn) tabSignIn.addEventListener('click', () => switchTab('signin'));
+        if (tabSignUp) tabSignUp.addEventListener('click', () => switchTab('signup'));
+        if (tabMagic) tabMagic.addEventListener('click', () => switchTab('magic'));
+        if (switchToSignUp) switchToSignUp.addEventListener('click', () => switchTab('signup'));
+        if (switchToSignIn) switchToSignIn.addEventListener('click', () => switchTab('signin'));
+
         // Auth Dialog open/close
         if (signInBtn && authDialog) {
             signInBtn.addEventListener('click', () => {
@@ -838,7 +907,8 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                         authWarning.classList.remove('hidden');
                     }
                 }
-                if (authStatusMsg) authStatusMsg.textContent = '';
+                clearStatus();
+                switchTab('signin');
                 authDialog.showModal();
             });
         }
@@ -849,43 +919,138 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             });
         }
 
+        // Email + Password Sign In Form
+        if (signinForm) {
+            signinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = signinEmailInput?.value.trim() || '';
+                const password = signinPasswordInput?.value || '';
+                if (!email || !password) return;
+
+                if (signinSubmitBtn) {
+                    signinSubmitBtn.disabled = true;
+                    signinSubmitBtn.textContent = 'Signing in...';
+                }
+                showStatus('Signing in...', 'info');
+
+                const { error } = await signInWithPassword(email, password);
+
+                if (signinSubmitBtn) {
+                    signinSubmitBtn.disabled = false;
+                    signinSubmitBtn.textContent = 'Sign In';
+                }
+
+                if (error) {
+                    showStatus(error.message, 'error');
+                } else {
+                    showStatus('Signed in successfully!', 'success');
+                }
+            });
+        }
+
+        // Email + Password Sign Up Form
+        if (signupForm) {
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = signupEmailInput?.value.trim() || '';
+                const password = signupPasswordInput?.value || '';
+                if (!email || !password) return;
+
+                if (signupSubmitBtn) {
+                    signupSubmitBtn.disabled = true;
+                    signupSubmitBtn.textContent = 'Creating account...';
+                }
+                showStatus('Creating account...', 'info');
+
+                const { error, requiresEmailConfirmation } = await signUpWithPassword(email, password);
+
+                if (signupSubmitBtn) {
+                    signupSubmitBtn.disabled = false;
+                    signupSubmitBtn.textContent = 'Create Free Account';
+                }
+
+                if (error) {
+                    showStatus(error.message, 'error');
+                } else if (requiresEmailConfirmation) {
+                    showStatus('Registration successful! Please check your email to confirm your account, then sign in.', 'success');
+                } else {
+                    showStatus('Account created and signed in!', 'success');
+                }
+            });
+        }
+
+        // Magic link form
+        if (magicLinkForm) {
+            magicLinkForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = magicEmailInput?.value.trim() || '';
+                if (!email) return;
+
+                if (magicSubmitBtn) {
+                    magicSubmitBtn.disabled = true;
+                    magicSubmitBtn.textContent = 'Sending...';
+                }
+                showStatus('Sending magic link to your email...', 'info');
+
+                const { error } = await signInWithOtp(email);
+
+                if (magicSubmitBtn) {
+                    magicSubmitBtn.disabled = false;
+                    magicSubmitBtn.textContent = 'Send Magic Link';
+                }
+
+                if (error) {
+                    showStatus(error.message, 'error');
+                } else {
+                    showStatus('Magic login link sent! Please check your email inbox.', 'success');
+                }
+            });
+        }
+
         // OAuth Handlers
         if (authGoogleBtn) {
             authGoogleBtn.addEventListener('click', async () => {
+                showStatus('Redirecting to Google...', 'info');
                 const { error } = await signInWithOAuth('google');
-                if (error && authStatusMsg) {
-                    authStatusMsg.textContent = error.message;
+                if (error) {
+                    showStatus(error.message, 'error');
                 }
             });
         }
 
         if (authGithubBtn) {
             authGithubBtn.addEventListener('click', async () => {
+                showStatus('Redirecting to GitHub...', 'info');
                 const { error } = await signInWithOAuth('github');
-                if (error && authStatusMsg) {
-                    authStatusMsg.textContent = error.message;
+                if (error) {
+                    showStatus(error.message, 'error');
                 }
             });
         }
 
-        // Magic link form
-        if (magicLinkForm && authEmailInput) {
-            magicLinkForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = authEmailInput.value.trim();
-                if (!email) return;
-
-                if (authStatusMsg) authStatusMsg.textContent = 'Sending magic link...';
-                const { error } = await signInWithOtp(email);
-                if (authStatusMsg) {
-                    if (error) {
-                        authStatusMsg.textContent = error.message;
-                    } else {
-                        authStatusMsg.textContent = 'Magic login link sent! Please check your email inbox.';
+        // Detect OAuth redirects with error in hash
+        const checkUrlHashForAuthErrors = () => {
+            if (typeof window === 'undefined' || !window.location.hash) return;
+            try {
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                const error = params.get('error');
+                const errorDesc = params.get('error_description');
+                if (error || errorDesc) {
+                    const cleanMsg = errorDesc || error;
+                    // Clean URL hash so error parameters do not linger
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                    if (authDialog) {
+                        authDialog.showModal();
+                        showStatus(`OAuth sign-in: ${cleanMsg}. (Tip: OAuth providers must be enabled in your Supabase Dashboard, or sign in directly with Email & Password.)`, 'error');
                     }
                 }
-            });
-        }
+            } catch (err) {
+                console.warn('Failed to parse URL hash error:', err);
+            }
+        };
+
+        checkUrlHashForAuthErrors();
 
         // User Dropdown toggle
         if (userMenuBtn && userDropdownContent) {

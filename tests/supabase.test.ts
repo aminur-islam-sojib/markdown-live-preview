@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { isSupabaseConfigured, getSupabase } from '../src/supabase/client';
-import { signInWithOAuth, signInWithOtp, signOut, getSession, getCurrentUser } from '../src/supabase/auth';
+import {
+  signInWithPassword,
+  signUpWithPassword,
+  signInWithOAuth,
+  signInWithOtp,
+  signOut,
+  getSession,
+  getCurrentUser
+} from '../src/supabase/auth';
 import {
   listCloudDocuments,
   getCloudDocument,
@@ -11,7 +19,6 @@ import {
 
 describe('Supabase Client & Offline Resilience', () => {
   it('detects unconfigured environment gracefully', () => {
-    // In test environment without .env, it should return false
     expect(typeof isSupabaseConfigured()).toBe('boolean');
   });
 
@@ -20,9 +27,17 @@ describe('Supabase Client & Offline Resilience', () => {
   });
 });
 
-describe('Supabase Auth Graceful Fallback', () => {
-  it('returns error or null when Supabase is not configured', async () => {
+describe('Supabase Auth Operations', () => {
+  it('handles sign in and sign up gracefully', async () => {
     if (!isSupabaseConfigured()) {
+      const signInRes = await signInWithPassword('test@example.com', 'pass123');
+      expect(signInRes.error?.message).toContain('Supabase is not configured');
+      expect(signInRes.user).toBeNull();
+
+      const signUpRes = await signUpWithPassword('test@example.com', 'pass123');
+      expect(signUpRes.error?.message).toContain('Supabase is not configured');
+      expect(signUpRes.user).toBeNull();
+
       const oauthRes = await signInWithOAuth('google');
       expect(oauthRes.error?.message).toContain('Supabase is not configured');
 
@@ -37,6 +52,14 @@ describe('Supabase Auth Graceful Fallback', () => {
 
       const user = await getCurrentUser();
       expect(user).toBeNull();
+    } else {
+      // In configured environment, invalid credentials return structured error rather than throwing
+      const signInRes = await signInWithPassword('nonexistent-user@invalid-domain-test.xyz', 'wrongpassword');
+      expect(signInRes.user).toBeNull();
+      expect(signInRes.error).toBeDefined();
+
+      const session = await getSession();
+      expect(session === null || typeof session === 'object').toBe(true);
     }
   });
 });

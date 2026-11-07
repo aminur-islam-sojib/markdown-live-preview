@@ -64,11 +64,13 @@ create policy "Users can delete own documents"
 ## 3. Configure Authentication Providers
 
 In the Supabase Dashboard, go to **Authentication -> Providers**:
-- **Email (Magic Link / OTP)**: Enabled by default.
-- **Google / GitHub**: Enable either provider by adding your OAuth Client ID and Secret if you want one-click social login.
-- **URL Configuration**:
+- **Email & Password**: Enabled by default! Users can register and sign in with email and password right away.
+  > **Tip for local development:** In **Authentication -> Providers -> Email**, toggle off **"Confirm email"** if you want new signups to be logged in immediately without waiting for confirmation emails.
+- **Email Magic Link**: Supported out of the box.
+- **Google / GitHub**: Optional social logins. To enable them, provide your third-party OAuth Client ID and Secret in the Supabase Dashboard.
+- **URL Configuration (Authentication -> URL Configuration)**:
   - Add `http://localhost:5173` to your **Redirect URLs** for local development.
-  - Add your production URL (e.g. `https://markdownlivepreview.com`) for production.
+  - Set your Site URL to your app URL.
 
 ---
 

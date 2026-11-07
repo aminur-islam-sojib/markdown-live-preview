@@ -3,6 +3,58 @@ import { getSupabase } from './client';
 
 export type AuthProvider = 'google' | 'github';
 
+export interface AuthResult {
+  user: User | null;
+  session: Session | null;
+  error: Error | null;
+  requiresEmailConfirmation?: boolean;
+}
+
+/**
+ * Signs in using an email address and password.
+ */
+export async function signInWithPassword(email: string, password: string): Promise<AuthResult> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { user: null, session: null, error: new Error('Supabase is not configured') };
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  return {
+    user: data?.user ?? null,
+    session: data?.session ?? null,
+    error: error ? new Error(error.message) : null
+  };
+}
+
+/**
+ * Creates a new account with email and password.
+ */
+export async function signUpWithPassword(email: string, password: string): Promise<AuthResult> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { user: null, session: null, error: new Error('Supabase is not configured') };
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password
+  });
+
+  const requiresEmailConfirmation = Boolean(data?.user && !data?.session);
+
+  return {
+    user: data?.user ?? null,
+    session: data?.session ?? null,
+    error: error ? new Error(error.message) : null,
+    requiresEmailConfirmation
+  };
+}
+
 /**
  * Triggers third-party OAuth sign in (Google or GitHub).
  */
