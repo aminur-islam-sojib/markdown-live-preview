@@ -430,9 +430,64 @@ footer {
 }
 
 .auth-container {
-  margin-left: 16px;
+  margin-left: 12px;
   display: flex;
   align-items: center;
+}
+
+.active-doc-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #0969da;
+  background-color: #ddf4ff;
+  border: 1px solid rgba(84, 174, 255, 0.4);
+  border-radius: 12px;
+  padding: 2px 8px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.save-cloud-btn {
+  background-color: #0969da;
+  color: #fff !important;
+  border: 1px solid #0969da;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.save-cloud-btn:hover {
+  background-color: #0856b3;
+}
+
+.save-cloud-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.current-note-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background-color: #dafbe1;
+  color: #1a7f37;
+  border: 1px solid rgba(74, 194, 107, 0.4);
+  border-radius: 10px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Modal Dialogs */
@@ -949,4 +1004,25 @@ footer {
   background-color: rgba(56, 139, 253, 0.15);
   border-color: rgba(56, 139, 253, 0.4);
   color: #58a6ff;
+}
+
+[data-theme="dark"] .active-doc-badge {
+  color: #58a6ff;
+  background-color: rgba(56, 139, 253, 0.15);
+  border-color: rgba(56, 139, 253, 0.4);
+}
+
+[data-theme="dark"] .save-cloud-btn {
+  background-color: #1f6feb;
+  border-color: #1f6feb;
+}
+
+[data-theme="dark"] .save-cloud-btn:hover {
+  background-color: #388bfd;
+}
+
+[data-theme="dark"] .current-note-badge {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border-color: rgba(46, 160, 67, 0.4);
 }

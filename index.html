@@ -30,7 +30,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=abdc401b0dda">
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=77bdb7568aa1">
     <link rel="icon" type="image/png" href="favicon.png">
     <script type="module" src="/src/main.js?v=1.13.0"></script>
     <title>Markdown Live Preview</title>
@@ -68,6 +68,8 @@
               <span style="margin-left:12px;"><input type="checkbox" id="theme-checkbox"><label for="theme-checkbox">Dark mode</label></span>
             </div>
             <div id="save-status" class="save-status" aria-live="polite"></div>
+            <span id="active-doc-badge" class="active-doc-badge hidden" title="Active cloud document"></span>
+            <button type="button" id="header-save-cloud-btn" class="menu-btn save-cloud-btn" title="Save current note to cloud">☁ Save to Cloud</button>
             <div id="auth-container" class="auth-container">
               <button type="button" id="sign-in-btn" class="menu-btn auth-btn">Sign In</button>
               <div class="dropdown hidden" id="user-dropdown">
@@ -76,6 +78,7 @@
                 </button>
                 <div class="dropdown-content" id="user-dropdown-content" role="menu">
                   <button type="button" id="my-notes-btn" role="menuitem">My Notes</button>
+                  <button type="button" id="save-current-note-btn" role="menuitem">Save Current Note to Cloud</button>
                   <button type="button" id="new-cloud-note-btn" role="menuitem">New Cloud Note</button>
                   <button type="button" id="sign-out-btn" role="menuitem">Sign Out</button>
                 </div>

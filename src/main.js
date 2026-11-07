@@ -40,6 +40,20 @@ const init = () => {
     };
 
     const saveStatusElement = document.querySelector('#save-status');
+    const activeDocBadge = document.querySelector('#active-doc-badge');
+
+    const updateActiveDocBadge = (title) => {
+        if (!activeDocBadge) return;
+        if (currentCloudDocId && title) {
+            activeDocBadge.textContent = `☁ ${title}`;
+            activeDocBadge.title = `Active cloud document: ${title}`;
+            activeDocBadge.classList.remove('hidden');
+        } else {
+            activeDocBadge.textContent = '';
+            activeDocBadge.classList.add('hidden');
+        }
+    };
+
     const updateSaveStatus = (status) => {
         if (!saveStatusElement) return;
         switch (status) {
@@ -63,14 +77,18 @@ const init = () => {
         if (saveStatusElement) {
             saveStatusElement.textContent = 'Syncing...';
         }
+        const title = deriveTitle(content);
         const updated = await updateCloudDocument(currentCloudDocId, {
             content,
-            title: deriveTitle(content)
+            title
         });
-        if (saveStatusElement) {
-            saveStatusElement.textContent = updated ? 'Saved (Cloud)' : 'Cloud sync failed';
+        if (updated) {
+            updateActiveDocBadge(updated.title || title);
+            if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+        } else {
+            if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
         }
-    }, 600);
+    }, 500);
 
     const autosaveManager = new AutosaveManager({
         debounceMs: 300,
@@ -348,6 +366,8 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 return;
             }
         }
+        currentCloudDocId = null;
+        updateActiveDocBadge('');
         presetValue(defaultInput);
         autosaveManager.saveImmediately(defaultInput);
         document.querySelectorAll('.column').forEach((element) => {
@@ -356,10 +376,11 @@ This web site is using ${"`"}markedjs/marked${"`"}.
     };
 
     let presetValue = (value) => {
-        editor.setValue(value);
+        const safeValue = typeof value === 'string' ? value : (value ?? '');
+        editor.setValue(safeValue);
         editor.revealPosition({ lineNumber: 1, column: 1 });
         editor.focus();
-        convert(value);
+        convert(safeValue);
         hasEdited = false;
     };
 
@@ -1112,6 +1133,13 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 titleSpan.className = 'note-title';
                 titleSpan.textContent = doc.title || 'Untitled Document';
 
+                if (currentCloudDocId === doc.id) {
+                    const activeBadge = document.createElement('span');
+                    activeBadge.className = 'current-note-badge';
+                    activeBadge.textContent = 'Active';
+                    titleSpan.appendChild(activeBadge);
+                }
+
                 const dateSpan = document.createElement('span');
                 dateSpan.className = 'note-date';
                 const updatedDate = new Date(doc.updated_at);
@@ -1127,12 +1155,30 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 openBtn.type = 'button';
                 openBtn.className = 'note-btn open-btn';
                 openBtn.textContent = 'Open';
-                openBtn.addEventListener('click', () => {
-                    currentCloudDocId = doc.id;
-                    presetValue(doc.content);
-                    autosaveManager.saveImmediately(doc.content);
-                    closeNotesModal();
-                    if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+                openBtn.addEventListener('click', async () => {
+                    try {
+                        openBtn.disabled = true;
+                        openBtn.textContent = 'Opening...';
+
+                        let noteContent = doc.content;
+                        if (typeof noteContent !== 'string') {
+                            const fullDoc = await getCloudDocument(doc.id);
+                            noteContent = fullDoc?.content ?? '';
+                        }
+
+                        currentCloudDocId = doc.id;
+                        presetValue(noteContent);
+                        autosaveManager.saveImmediately(noteContent);
+                        updateActiveDocBadge(doc.title || 'Untitled Document');
+                        closeNotesModal();
+                        if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+                    } catch (err) {
+                        console.error('Failed to open document:', err);
+                        window.alert('Failed to open note. Please try again.');
+                    } finally {
+                        openBtn.disabled = false;
+                        openBtn.textContent = 'Open';
+                    }
                 });
 
                 const deleteBtn = document.createElement('button');
@@ -1147,6 +1193,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                     if (success) {
                         if (currentCloudDocId === doc.id) {
                             currentCloudDocId = null;
+                            updateActiveDocBadge('');
                             if (saveStatusElement) saveStatusElement.textContent = 'Saved';
                         }
                         renderNotesList();
@@ -1175,12 +1222,77 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             });
         }
 
+        const handleSaveToCloud = async () => {
+            if (!currentUser) {
+                if (authDialog) {
+                    authDialog.showModal();
+                }
+                return;
+            }
+
+            const content = editor.getValue();
+            const title = deriveTitle(content);
+
+            const headerSaveBtn = document.querySelector('#header-save-cloud-btn');
+            if (headerSaveBtn) {
+                headerSaveBtn.disabled = true;
+                headerSaveBtn.textContent = 'Saving...';
+            }
+            if (saveStatusElement) {
+                saveStatusElement.textContent = 'Saving to Cloud...';
+            }
+
+            try {
+                if (currentCloudDocId) {
+                    const updated = await updateCloudDocument(currentCloudDocId, { content, title });
+                    if (updated) {
+                        updateActiveDocBadge(updated.title || title);
+                        if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+                    } else {
+                        if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
+                    }
+                } else {
+                    const newDoc = await createCloudDocument(title, content);
+                    if (newDoc) {
+                        currentCloudDocId = newDoc.id;
+                        updateActiveDocBadge(newDoc.title || title);
+                        if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
+                    } else {
+                        if (saveStatusElement) saveStatusElement.textContent = 'Offline (Saved locally)';
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to save to cloud:', err);
+                if (saveStatusElement) saveStatusElement.textContent = 'Save failed';
+            } finally {
+                if (headerSaveBtn) {
+                    headerSaveBtn.disabled = false;
+                    headerSaveBtn.textContent = '☁ Save to Cloud';
+                }
+            }
+        };
+
+        const headerSaveCloudBtn = document.querySelector('#header-save-cloud-btn');
+        if (headerSaveCloudBtn) {
+            headerSaveCloudBtn.addEventListener('click', handleSaveToCloud);
+        }
+
+        const saveCurrentNoteBtn = document.querySelector('#save-current-note-btn');
+        if (saveCurrentNoteBtn) {
+            saveCurrentNoteBtn.addEventListener('click', () => {
+                if (userDropdownContent) userDropdownContent.classList.remove('show');
+                handleSaveToCloud();
+            });
+        }
+
         const handleNewCloudNote = async () => {
-            const newDoc = await createCloudDocument('Untitled Document', defaultInput);
+            const initialContent = '# Untitled Note\n\nStart writing your note here...\n';
+            const newDoc = await createCloudDocument('Untitled Note', initialContent);
             if (newDoc) {
                 currentCloudDocId = newDoc.id;
-                presetValue(defaultInput);
-                autosaveManager.saveImmediately(defaultInput);
+                presetValue(initialContent);
+                autosaveManager.saveImmediately(initialContent);
+                updateActiveDocBadge(newDoc.title);
                 closeNotesModal();
                 if (saveStatusElement) saveStatusElement.textContent = 'Saved (Cloud)';
             } else {
@@ -1220,6 +1332,7 @@ This web site is using ${"`"}markedjs/marked${"`"}.
                 if (signInBtn) signInBtn.classList.remove('hidden');
                 if (userDropdown) userDropdown.classList.add('hidden');
                 currentCloudDocId = null;
+                updateActiveDocBadge('');
                 if (saveStatusElement) saveStatusElement.textContent = 'Saved';
             }
         });
