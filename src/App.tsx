@@ -8,6 +8,7 @@ import { SaveNoteModal } from './components/SaveNoteModal';
 import { AuthModal } from './components/AuthModal';
 import { MyNotesModal } from './components/MyNotesModal';
 import { Footer } from './components/Footer';
+import { Toast, ToastData } from './components/Toast';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
 import { AutosaveManager, debounce } from './storage/autosave';
 import {
@@ -174,17 +175,37 @@ export const App: React.FC = () => {
     type: 'saved'
   });
   const [justSaved, setJustSaved] = useState<boolean>(false);
+  const [lastSavedContent, setLastSavedContent] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('com.markdownlivepreview_last_state');
+      return saved ? JSON.parse(saved).value : DEFAULT_MARKDOWN;
+    } catch {
+      return DEFAULT_MARKDOWN;
+    }
+  });
+  const isDirty = content !== lastSavedContent;
 
-  // 6. Modal Open States
+  // 6. Modal Open & Toast States
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMyNotesModalOpen, setIsMyNotesModalOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const showToast = useCallback((data: Omit<ToastData, 'id'>) => {
+    setToast({
+      ...data,
+      id: String(Date.now())
+    });
+  }, []);
 
   // Refs for fresh state access in callbacks/shortcuts
   const contentRef = useRef(content);
   contentRef.current = content;
+
+  const lastSavedContentRef = useRef(lastSavedContent);
+  lastSavedContentRef.current = lastSavedContent;
 
   const docTitleRef = useRef(docTitle);
   docTitleRef.current = docTitle;
@@ -256,6 +277,7 @@ export const App: React.FC = () => {
         title: deriveDocTitle(val)
       });
       if (updated) {
+        setLastSavedContent(val);
         setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
       } else {
         setSaveStatus({ text: 'Offline (Saved locally)', type: 'offline' });
@@ -291,9 +313,28 @@ export const App: React.FC = () => {
     const docId = activeCloudDocIdRef.current;
     const currentDocContent = contentRef.current;
     const currentDocTitle = docTitleRef.current;
+    const isDocDirty = currentDocContent !== lastSavedContentRef.current;
 
-    // If logged in and this note has already been saved to cloud once, save directly!
-    if (!forceOpenModal && user && docId) {
+    // 1. If explicitly opened via "Note Details & Tags" or tab click:
+    if (forceOpenModal) {
+      setIsSaveModalOpen(true);
+      return;
+    }
+
+    // 2. If logged in and this note is an existing Cloud note:
+    if (user && docId) {
+      if (!isDocDirty) {
+        // Already up to date! Don't open any modal, just give gentle reassurance
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 1500);
+        showToast({
+          message: 'All changes are up to date in Cloud',
+          type: 'cloud'
+        });
+        return;
+      }
+
+      // Has unsaved changes: save immediately in background
       setSaveStatus({ text: 'Saving to Cloud...', type: 'saving' });
       try {
         const updated = await updateCloudDocument(docId, {
@@ -301,9 +342,14 @@ export const App: React.FC = () => {
           title: currentDocTitle
         });
         if (updated) {
+          setLastSavedContent(currentDocContent);
           setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
           setJustSaved(true);
           setTimeout(() => setJustSaved(false), 1500);
+          showToast({
+            message: 'Saved to Supabase Cloud',
+            type: 'cloud'
+          });
         } else {
           setSaveStatus({ text: 'Offline (Saved locally)', type: 'offline' });
         }
@@ -314,9 +360,29 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Otherwise (guest, or first-time save, or explicitly editing note details), open modal!
+    // 3. If guest / unauthenticated user:
+    if (!user) {
+      // Save locally to localStorage without opening a disruptive modal
+      autosaveRef.current?.saveImmediately(currentDocContent);
+      setLastSavedContent(currentDocContent);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1500);
+      setSaveStatus({ text: 'Saved locally', type: 'saved' });
+      showToast({
+        message: 'Saved to browser storage',
+        type: 'success',
+        action: {
+          label: 'Sign In to sync',
+          onClick: () => setIsAuthModalOpen(true)
+        }
+      });
+      return;
+    }
+
+    // 4. Logged in, but first-time save for an unsaved/new note:
+    // Open the metadata dialog so the user can choose title, tags, visibility!
     setIsSaveModalOpen(true);
-  }, []);
+  }, [showToast]);
 
   // Keyboard shortcut Ctrl+S
   useEffect(() => {
@@ -406,6 +472,7 @@ export const App: React.FC = () => {
       try {
         const text = await readFileAsText(file);
         setContent(text);
+        setLastSavedContent(text);
         autosaveRef.current?.saveImmediately(text);
         const name = file.name.replace(/\.md$/i, '');
         setDocTitle(name);
@@ -435,6 +502,7 @@ export const App: React.FC = () => {
     try {
       const text = await file.text();
       setContent(text);
+      setLastSavedContent(text);
       autosaveRef.current?.saveImmediately(text);
       const name = file.name.replace(/\.md$/i, '');
       setDocTitle(name);
@@ -449,6 +517,7 @@ export const App: React.FC = () => {
   const handleResetDoc = () => {
     if (window.confirm('Are you sure you want to reset? Your unsaved changes will be lost.')) {
       setContent(DEFAULT_MARKDOWN);
+      setLastSavedContent(DEFAULT_MARKDOWN);
       autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
       setDocTitle('Untitled Document');
       setActiveCloudDocId(null);
@@ -459,8 +528,10 @@ export const App: React.FC = () => {
   };
 
   const handleNewDoc = () => {
-    setContent('# Untitled Note\n\nStart writing here...\n');
-    autosaveRef.current?.saveImmediately('# Untitled Note\n\nStart writing here...\n');
+    const blank = '# Untitled Note\n\nStart writing here...\n';
+    setContent(blank);
+    setLastSavedContent(blank);
+    autosaveRef.current?.saveImmediately(blank);
     setDocTitle('Untitled Note');
     setActiveCloudDocId(null);
     try {
@@ -550,23 +621,29 @@ export const App: React.FC = () => {
           content
         });
         if (updated) {
+          setLastSavedContent(content);
           setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
           setJustSaved(true);
           setTimeout(() => setJustSaved(false), 1500);
+          showToast({ message: 'Saved to Supabase Cloud', type: 'cloud' });
         }
       } else {
         const newDoc = await createCloudDocument(cleanTitle, content);
         if (newDoc) {
           setActiveCloudDocId(newDoc.id);
+          setLastSavedContent(content);
           setSaveStatus({ text: 'Saved (Cloud)', type: 'saved' });
           setJustSaved(true);
           setTimeout(() => setJustSaved(false), 1500);
+          showToast({ message: 'Saved to Supabase Cloud', type: 'cloud' });
         }
       }
     } else {
+      setLastSavedContent(content);
       setSaveStatus({ text: 'Saved just now', type: 'saved' });
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
+      showToast({ message: 'Saved locally', type: 'success' });
     }
   };
 
@@ -584,6 +661,7 @@ export const App: React.FC = () => {
       noteContent = full?.content ?? '';
     }
     setContent(noteContent);
+    setLastSavedContent(noteContent);
     setDocTitle(doc.title || 'Untitled Document');
     autosaveRef.current?.saveImmediately(noteContent);
     try {
@@ -625,6 +703,12 @@ export const App: React.FC = () => {
         onSignOut={() => {
           supabaseSignOut();
           setActiveCloudDocId(null);
+        }}
+        isDirty={isDirty}
+        onDownloadMd={() => handleDownloadMd(docTitle)}
+        onCopyContent={() => {
+          navigator.clipboard.writeText(content);
+          showToast({ message: 'Copied Markdown to clipboard', type: 'info' });
         }}
       />
 
@@ -741,6 +825,9 @@ export const App: React.FC = () => {
         onSelectDoc={handleSelectCloudDoc}
         onNewNote={handleNewDoc}
       />
+
+      {/* Floating Micro Toast Notifications */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 };

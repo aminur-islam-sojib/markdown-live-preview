@@ -41,6 +41,9 @@ interface HeaderProps {
   onSignOut: () => void;
   justSaved?: boolean;
   onEditNoteDetails?: () => void;
+  isDirty?: boolean;
+  onDownloadMd?: () => void;
+  onCopyContent?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -62,22 +65,31 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuth,
   onSignOut,
   justSaved = false,
-  onEditNoteDetails
+  onEditNoteDetails,
+  isDirty = false,
+  onDownloadMd,
+  onCopyContent
 }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const quickMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (exportRef.current && !exportRef.current.contains(target)) {
         setExportOpen(false);
       }
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
+      }
+      if (quickMenuRef.current && !quickMenuRef.current.contains(target)) {
+        setQuickMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -252,34 +264,135 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Primary Save Button (anchors the Save popup) */}
-        <button
-          ref={saveButtonRef}
-          type="button"
-          onClick={onSaveClick}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white transition shadow-xs ${
-            justSaved
-              ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
-              : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-blue-500/20'
-          }`}
-          title={
-            currentUser && activeCloudDocId
-              ? 'Click or press Ctrl+S to save immediately to cloud'
-              : 'Save note (Ctrl+S)'
-          }
-        >
-          {justSaved ? (
-            <>
+        {/* State-aware Save Button */}
+        {(!isDirty && (activeCloudDocId || justSaved)) ? (
+          /* ================= Up to Date / Saved State ================= */
+          <div ref={quickMenuRef} className="relative inline-flex items-center rounded-lg shadow-xs border border-emerald-200/90 dark:border-emerald-800/80 bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+            <button
+              ref={saveButtonRef}
+              type="button"
+              onClick={onSaveClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 rounded-l-lg transition active:scale-[0.98]"
+              title="All changes saved. Press Ctrl+S to verify or click to view status."
+            >
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Saved!</span>
-            </>
-          ) : (
-            <>
-              <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>Save</span>
-            </>
-          )}
-        </button>
+              <span>{justSaved ? 'Saved!' : 'Saved'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setQuickMenuOpen((prev) => !prev)}
+              className="px-1.5 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 rounded-r-lg border-l border-emerald-200/80 dark:border-emerald-800/60 transition"
+              title="Note quick actions & details"
+              aria-label="Note quick actions"
+            >
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {/* Quick Action Popover */}
+            {quickMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 shadow-[0_15px_35px_-10px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_45px_-10px_rgba(0,0,0,0.8)] ring-1 ring-black/5 dark:ring-white/10 py-1.5 z-50 text-xs text-slate-700 dark:text-slate-200 popover-spring popover-spring-entered">
+                <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800/80">
+                  <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{docTitle}</p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                    <Cloud className="w-3 h-3" />
+                    <span>{activeCloudDocId ? 'Synced with Supabase Cloud' : 'Saved in Browser storage'}</span>
+                  </p>
+                </div>
+
+                <div className="py-1">
+                  {onEditNoteDetails && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickMenuOpen(false);
+                        onEditNoteDetails();
+                      }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 flex items-center gap-2"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Note Details & Tags</span>
+                    </button>
+                  )}
+
+                  {onDownloadMd && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickMenuOpen(false);
+                        onDownloadMd();
+                      }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 flex items-center gap-2"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Download .md</span>
+                    </button>
+                  )}
+
+                  {onCopyContent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickMenuOpen(false);
+                        onCopyContent();
+                      }}
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 flex items-center gap-2"
+                    >
+                      <Bookmark className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copy Markdown</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickMenuOpen(false);
+                      onNewDoc();
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 flex items-center gap-2 text-slate-600 dark:text-slate-300"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Create New Note</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ================= Unsaved Changes / Active Save Button ================= */
+          <button
+            ref={saveButtonRef}
+            type="button"
+            onClick={onSaveClick}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white transition shadow-xs ${
+              justSaved
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] shadow-blue-500/20'
+            }`}
+            title={
+              activeCloudDocId
+                ? 'Save changes to cloud (Ctrl+S)'
+                : 'Save note (Ctrl+S)'
+            }
+          >
+            {justSaved ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Saved!</span>
+              </>
+            ) : (
+              <>
+                <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />
+                <span>Save</span>
+                {isDirty && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" title="Unsaved changes" />
+                )}
+              </>
+            )}
+          </button>
+        )}
 
         {/* Theme Toggle */}
         <button
