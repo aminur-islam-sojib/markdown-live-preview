@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { marked } from 'marked';
 import mermaid from 'mermaid';
-import { sanitizeHtml } from '../parser/sanitizer';
+import { parseMarkdown } from '../parser/markdown-parser';
 import { Theme } from '../types';
 
 interface PreviewPaneProps {
@@ -17,7 +16,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   previewRef,
   onScroll
 }) => {
-  const [renderedHtml, setRenderedHtml] = useState('');
+  // Initialize with immediate parse so there is zero initial blank flash
+  const [renderedHtml, setRenderedHtml] = useState(() => parseMarkdown(content || ''));
   const outputRef = useRef<HTMLDivElement>(null);
   const renderVersionRef = useRef(0);
 
@@ -31,79 +31,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     });
   }, [theme]);
 
-  // Convert markdown to sanitized HTML with data-line anchors for accurate sync scrolling
+  // Convert markdown to sanitized HTML with debouncing for fast typing performance
   useEffect(() => {
-    try {
-      const tokens = marked.lexer(content || '');
-      let currentLine = 1;
+    const timer = setTimeout(() => {
+      setRenderedHtml(parseMarkdown(content || ''));
+    }, 40);
 
-      // Calculate line numbers for each block token
-      for (const token of tokens) {
-        (token as any).line = currentLine;
-        const lineBreaks = (token.raw.match(/\n/g) || []).length;
-        currentLine += lineBreaks;
-      }
-
-      const renderer = new marked.Renderer();
-
-      const origHeading = renderer.heading.bind(renderer);
-      renderer.heading = function (token) {
-        const html = origHeading(token);
-        const line = (token as any).line;
-        return line ? html.replace(/^<h([1-6])/, `<h$1 data-line="${line}"`) : html;
-      };
-
-      const origParagraph = renderer.paragraph.bind(renderer);
-      renderer.paragraph = function (token) {
-        const html = origParagraph(token);
-        const line = (token as any).line;
-        return line ? html.replace(/^<p/, `<p data-line="${line}"`) : html;
-      };
-
-      const origCode = renderer.code.bind(renderer);
-      renderer.code = function (token) {
-        const lang = (token.lang || '').match(/^\S*/)?.[0].toLowerCase();
-        const line = (token as any).line || 1;
-        if (lang === 'mermaid') {
-          const text = token.text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-          return `<pre class="mermaid" data-line="${line}">${text}</pre>\n`;
-        }
-        const html = origCode(token);
-        return line ? html.replace(/^<pre/, `<pre data-line="${line}"`) : html;
-      };
-
-      const origBlockquote = renderer.blockquote.bind(renderer);
-      renderer.blockquote = function (token) {
-        const html = origBlockquote(token);
-        const line = (token as any).line;
-        return line ? html.replace(/^<blockquote/, `<blockquote data-line="${line}"`) : html;
-      };
-
-      const origList = renderer.list.bind(renderer);
-      renderer.list = function (token) {
-        const html = origList(token);
-        const line = (token as any).line;
-        return line ? html.replace(/^<(ul|ol)/, `<$1 data-line="${line}"`) : html;
-      };
-
-      const origTable = renderer.table.bind(renderer);
-      renderer.table = function (token) {
-        const html = origTable(token);
-        const line = (token as any).line;
-        return line ? html.replace(/^<table/, `<table data-line="${line}"`) : html;
-      };
-
-      const rawHtml = marked.parser(tokens, { renderer, gfm: true, breaks: true });
-      const cleanHtml = sanitizeHtml(rawHtml);
-      setRenderedHtml(cleanHtml);
-    } catch (err) {
-      console.error('Failed to parse Markdown:', err);
-    }
+    return () => clearTimeout(timer);
   }, [content]);
 
   // Render Mermaid diagrams after HTML is inserted into DOM
@@ -149,7 +83,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       <div
         ref={outputRef}
         id="output"
-        className="markdown-body max-w-4xl mx-auto prose dark:prose-invert prose-slate"
+        className="markdown-body max-w-3xl mx-auto py-2"
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
     </div>

@@ -417,14 +417,6 @@ export const Header: React.FC<HeaderProps> = ({
           }
           aria-pressed={syncScroll}
         >
-          {/* Status Indicator Dot */}
-          <span
-            className={`w-1.5 h-1.5 rounded-full transition-colors shrink-0 ${
-              syncScroll
-                ? 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.8)]'
-                : 'bg-slate-400 dark:bg-slate-500'
-            }`}
-          />
           {syncScroll ? (
             <Link2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
           ) : (

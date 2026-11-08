@@ -364,7 +364,7 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200/70 dark:active:bg-slate-700/70 active:scale-[0.98] transition focus:outline-hidden focus:ring-2 focus:ring-slate-400/20"
               >
                 Cancel
               </button>
@@ -551,7 +551,7 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-xs hover:text-slate-800 dark:hover:text-slate-200 transition"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200/70 dark:active:bg-slate-700/70 active:scale-[0.98] transition focus:outline-hidden focus:ring-2 focus:ring-slate-400/20"
               >
                 Cancel
               </button>

@@ -17,8 +17,7 @@ import {
   Check,
   FileText
 } from 'lucide-react';
-import { marked } from 'marked';
-import { sanitizeHtml } from '../parser/sanitizer';
+import { parseMarkdown } from '../parser/markdown-parser';
 import { listCloudDocuments, deleteCloudDocument, CloudDocument } from '../supabase/documents';
 import {
   LocalNote,
@@ -29,6 +28,7 @@ import {
   formatRelativeTime
 } from '../storage/local-notes';
 import { useModalAnimation } from '../hooks/useModalAnimation';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export interface UnifiedDocument {
   id: string;
@@ -65,6 +65,7 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<UnifiedDocument | null>(null);
 
   const { isMounted, phase } = useModalAnimation(isOpen, 200);
 
@@ -166,20 +167,24 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
       setPreviewHtml('');
       return;
     }
-    const raw = marked.parse(selectedDoc.content || '') as string;
-    setPreviewHtml(sanitizeHtml(raw));
+    setPreviewHtml(parseMarkdown(selectedDoc.content || '', false));
   }, [selectedDoc]);
 
   if (!isMounted) return null;
 
-  const handleDelete = async (doc: UnifiedDocument) => {
-    if (!window.confirm(`Are you sure you want to delete "${doc.title}"?`)) return;
+  const handleDelete = (doc: UnifiedDocument) => {
+    setDocToDelete(doc);
+  };
 
-    if (doc.source === 'cloud') {
-      await deleteCloudDocument(doc.id);
+  const handleConfirmDelete = async () => {
+    if (!docToDelete) return;
+
+    if (docToDelete.source === 'cloud') {
+      await deleteCloudDocument(docToDelete.id);
     } else {
-      deleteLocalNote(doc.id);
+      deleteLocalNote(docToDelete.id);
     }
+    setDocToDelete(null);
     loadAllDocuments();
   };
 
@@ -499,6 +504,20 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!docToDelete}
+        title="Delete Document"
+        message={
+          <span>
+            Are you sure you want to delete <span className="font-semibold text-slate-800 dark:text-slate-200">"{docToDelete?.title}"</span>? This cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Document"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDocToDelete(null)}
+      />
     </div>
   );
 };

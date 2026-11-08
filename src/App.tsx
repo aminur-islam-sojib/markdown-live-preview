@@ -9,6 +9,7 @@ import { MyNotesModal } from './components/MyNotesModal';
 import { NotesDrawer, UnifiedNote } from './components/NotesDrawer';
 import { Footer } from './components/Footer';
 import { Toast, ToastData } from './components/Toast';
+import { ConfirmDialog, DialogVariant } from './components/ConfirmDialog';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
 import { AutosaveManager, debounce } from './storage/autosave';
 import { saveLocalNote } from './storage/local-notes';
@@ -31,70 +32,33 @@ import {
   getCloudDocument,
 } from './supabase/documents';
 
-const DEFAULT_MARKDOWN = `# Welcome to Markview ✨
+const DEFAULT_MARKDOWN = `# Welcome to Markview
 
-> A modern, privacy-first live Markdown workspace with Monaco Editor, instant synchronized preview, native Mermaid diagrams, and export options.
+A fast, distraction-free Markdown workspace with live preview, math, and diagrams.
 
----
+> 💡 **Tip:** Press \`Ctrl + S\` to save your note, or \`Ctrl + O\` to open your notes drawer.
 
-### ⚡ Quick Start Checklist
-- [x] **Live Editing**: Edit text in the editor on the left; the preview updates instantly on the right.
-- [ ] **Synchronized Scrolling**: Click **Sync On** in the header to lock both panes together with anchor alignment.
-- [ ] **Formatting Tools**: Select text and press \`Ctrl+B\` (Bold), \`Ctrl+I\` (Italic), or use the header toolbar.
-- [ ] **Notes Library**: Press \`Ctrl+O\` or click the menu button (≡) on the top-left to manage your notes.
-- [ ] **Save Your Work**: Press \`Ctrl+S\` to save locally or sync with your Cloud account.
+### What you can do here
+- **Style text**: Use **bold**, *italic*, ~~strikethrough~~, or \`inline code\`
+- **Interactive checklist**:
+  - [x] Write on the left, watch live preview on the right
+  - [ ] Toggle **Sync On** in the header to lock scrolling
+  - [ ] Switch views anytime: **Split**, **Editor**, or **Preview**
 
----
+### LaTeX Math
+Write inline math like $E = mc^2$ or beautiful display equations:
 
-### 📊 Live Mermaid Diagrams
-Markview renders native Mermaid diagrams automatically:
+$$ \\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi} $$
+
+### Live Diagrams
+Markview renders native Mermaid diagrams in real-time:
 
 \`\`\`mermaid
 graph LR
-  A[📝 Markdown Input] --> B(⚡ Monaco Editor)
-  B --> C{🛡️ DOMPurify}
-  C --> D[🎨 Live HTML Preview]
-  D --> E[💾 Export / Cloud Sync]
+  A[Draft] --> B(Live Preview) --> C{Export}
+  C -->|Save| D[Cloud / Local]
+  C -->|Download| E[.md / PDF / HTML]
 \`\`\`
-
----
-
-### ⌨️ Essential Keyboard Shortcuts
-
-| Action | Shortcut | Description |
-| :--- | :---: | :--- |
-| **Save Note** | \`Ctrl + S\` / \`Cmd + S\` | Save locally or sync to Cloud |
-| **Notes Drawer** | \`Ctrl + O\` | Open sliding Notes Library |
-| **Toggle Bold** | \`Ctrl + B\` | Wrap selection in \`**bold**\` |
-| **Toggle Italic** | \`Ctrl + I\` | Wrap selection in \`*italic*\` |
-
----
-
-### 💻 Code Blocks with Syntax Highlighting
-
-\`\`\`typescript
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  updatedAt: Date;
-}
-
-const welcomeUser = (name: string): string => {
-  return \`Welcome to Markview, \${name}!\`;
-};
-\`\`\`
-
----
-
-### 🚀 Key Features
-
-* **Instant Live Preview**: Powered by Marked and DOMPurify.
-* **Anchor-Based Synchronized Scrolling**: Headings and diagrams stay locked in sync.
-* **Export Options**: Export your work anytime to \`.md\`, HTML, or PDF.
-* **Cloud & Local Storage**: Save locally in your browser, or sign in to sync with Supabase.
-
-> 💡 **Privacy First:** Your documents stay strictly in your browser storage unless you choose to sign in and save to your private Cloud library.
 `;
 
 const deriveDocTitle = (text: string): string => {
@@ -192,6 +156,12 @@ export const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [alertData, setAlertData] = useState<{ title: string; message: string; variant?: DialogVariant } | null>(null);
+
+  const showAlert = useCallback((title: string, message: string, variant: DialogVariant = 'warning') => {
+    setAlertData({ title, message, variant });
+  }, []);
 
   const showToast = useCallback((data: Omit<ToastData, 'id'>) => {
     setToast({
@@ -633,7 +603,7 @@ export const App: React.FC = () => {
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!isMarkdownFile(file)) {
-        window.alert('Please drop a Markdown (.md) or plain text file.');
+        showAlert('Unsupported File Type', 'Please drop a Markdown (.md, .markdown) or plain text file.', 'warning');
         return;
       }
       try {
@@ -647,7 +617,7 @@ export const App: React.FC = () => {
           localStorage.setItem('com.markdownlivepreview_doc_title', name);
         } catch {}
       } catch {
-        window.alert('Unable to read this file. Please try again.');
+        showAlert('File Read Error', 'Unable to read this file. Please verify file permissions and try again.', 'danger');
       }
     };
 
@@ -662,7 +632,7 @@ export const App: React.FC = () => {
       window.removeEventListener('dragleave', handleDragLeave);
       window.removeEventListener('drop', handleDrop);
     };
-  }, []);
+  }, [showAlert]);
 
   // Handlers
   const handleOpenFile = async (file: File) => {
@@ -677,24 +647,28 @@ export const App: React.FC = () => {
         localStorage.setItem('com.markdownlivepreview_doc_title', name);
       } catch {}
     } catch {
-      window.alert('Unable to read file. Please try again.');
+      showAlert('File Read Error', 'Unable to read file. Please try again.', 'danger');
     }
   };
 
   const handleResetDoc = () => {
-    if (window.confirm('Are you sure you want to reset? Your unsaved changes will be lost.')) {
-      setContent(DEFAULT_MARKDOWN);
-      setLastSavedContent(DEFAULT_MARKDOWN);
-      autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
-      const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
-      setDocTitle(defaultTitle);
-      setActiveCloudDocId(null);
-      setActiveLocalDocId(null);
-      try {
-        localStorage.removeItem('com.markdownlivepreview_doc_title');
-        localStorage.removeItem('com.markdownlivepreview_active_local_id');
-      } catch {}
-    }
+    setIsResetConfirmOpen(true);
+  };
+
+  const confirmResetDoc = () => {
+    setContent(DEFAULT_MARKDOWN);
+    setLastSavedContent(DEFAULT_MARKDOWN);
+    autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
+    const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
+    setDocTitle(defaultTitle);
+    setActiveCloudDocId(null);
+    setActiveLocalDocId(null);
+    try {
+      localStorage.removeItem('com.markdownlivepreview_doc_title');
+      localStorage.removeItem('com.markdownlivepreview_active_local_id');
+    } catch {}
+    setIsResetConfirmOpen(false);
+    showToast({ message: 'Document reset to default template', type: 'info' });
   };
 
   const handleNewDoc = () => {
@@ -1016,6 +990,29 @@ export const App: React.FC = () => {
         onSelectDoc={handleSelectNote}
         onNewNote={handleNewDoc}
         currentUser={currentUser}
+      />
+
+      {/* Reset Document Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isResetConfirmOpen}
+        title="Reset Document"
+        message="Are you sure you want to reset? Your unsaved changes in your current note will be replaced with the default template."
+        confirmLabel="Reset Document"
+        variant="danger"
+        onConfirm={confirmResetDoc}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
+
+      {/* General Alert / Error Dialog */}
+      <ConfirmDialog
+        isOpen={!!alertData}
+        title={alertData?.title || ''}
+        message={alertData?.message || ''}
+        variant={alertData?.variant || 'warning'}
+        confirmLabel="OK"
+        isAlert={true}
+        onConfirm={() => setAlertData(null)}
+        onCancel={() => setAlertData(null)}
       />
 
       {/* Floating Micro Toast Notifications */}
