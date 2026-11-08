@@ -8,7 +8,8 @@ export const SANITIZER_CONFIG: Config = {
   USE_PROFILES: {
     html: true,
     svg: true,
-    svgFilters: true
+    svgFilters: true,
+    mathMl: true
   },
   ADD_ATTR: ['data-line'],
   // Disallow potentially hazardous tags even within standard HTML

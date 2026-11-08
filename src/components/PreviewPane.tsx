@@ -1,8 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
+import katex from 'katex';
 import { sanitizeHtml } from '../parser/sanitizer';
+import { inlineMathExtension, blockMathExtension } from '../parser/math-extension';
 import { Theme } from '../types';
+
+// Register KaTeX LaTeX math extensions with Marked
+marked.use({ extensions: [blockMathExtension, inlineMathExtension] });
 
 interface PreviewPaneProps {
   content: string;
@@ -72,6 +77,17 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
           return `<pre class="mermaid" data-line="${line}">${text}</pre>\n`;
+        }
+        if (lang === 'math' || lang === 'latex') {
+          try {
+            const html = katex.renderToString(token.text, {
+              displayMode: true,
+              throwOnError: false
+            });
+            return `<div class="katex-display" data-line="${line}">${html}</div>\n`;
+          } catch {
+            return `<pre class="katex-error" data-line="${line}"><code>${token.text}</code></pre>\n`;
+          }
         }
         const html = origCode(token);
         return line ? html.replace(/^<pre/, `<pre data-line="${line}"`) : html;

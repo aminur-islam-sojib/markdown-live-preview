@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "github-markdown-css/github-markdown.css";
+@import "katex/dist/katex.min.css";
 
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -43,6 +44,18 @@
   display: flex;
   justify-content: center;
   padding: 1rem 0;
+}
+
+.markdown-body .katex-display {
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.markdown-body .katex {
+  font-size: 1.1em;
 }
 
 /* Premium soft spring easing & modal animation physics */

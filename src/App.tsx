@@ -31,70 +31,18 @@ import {
   getCloudDocument,
 } from './supabase/documents';
 
-const DEFAULT_MARKDOWN = `# Welcome to Markview ✨
+const DEFAULT_MARKDOWN = `# Welcome to Markview
 
-> A modern, privacy-first live Markdown workspace with Monaco Editor, instant synchronized preview, native Mermaid diagrams, and export options.
+A minimal, live Markdown workspace with instant preview, diagrams, and math.
 
----
+### Quick tips
+- Format with **bold** (\`**text**\`), *italic* (\`*text*\`), or \`inline code\`
+- Write LaTeX math inline with \`$E = mc^2$\` or display math:
+  $$ \\int_{-\\infty}^\\infty e^{-x^2} dx = \\sqrt{\\pi} $$
+- Render Mermaid diagrams with \`\`\`mermaid
+- Press \`Ctrl + S\` to save, or \`Ctrl + O\` to open your notes drawer
 
-### ⚡ Quick Start Checklist
-- [x] **Live Editing**: Edit text in the editor on the left; the preview updates instantly on the right.
-- [ ] **Synchronized Scrolling**: Click **Sync On** in the header to lock both panes together with anchor alignment.
-- [ ] **Formatting Tools**: Select text and press \`Ctrl+B\` (Bold), \`Ctrl+I\` (Italic), or use the header toolbar.
-- [ ] **Notes Library**: Press \`Ctrl+O\` or click the menu button (≡) on the top-left to manage your notes.
-- [ ] **Save Your Work**: Press \`Ctrl+S\` to save locally or sync with your Cloud account.
-
----
-
-### 📊 Live Mermaid Diagrams
-Markview renders native Mermaid diagrams automatically:
-
-\`\`\`mermaid
-graph LR
-  A[📝 Markdown Input] --> B(⚡ Monaco Editor)
-  B --> C{🛡️ DOMPurify}
-  C --> D[🎨 Live HTML Preview]
-  D --> E[💾 Export / Cloud Sync]
-\`\`\`
-
----
-
-### ⌨️ Essential Keyboard Shortcuts
-
-| Action | Shortcut | Description |
-| :--- | :---: | :--- |
-| **Save Note** | \`Ctrl + S\` / \`Cmd + S\` | Save locally or sync to Cloud |
-| **Notes Drawer** | \`Ctrl + O\` | Open sliding Notes Library |
-| **Toggle Bold** | \`Ctrl + B\` | Wrap selection in \`**bold**\` |
-| **Toggle Italic** | \`Ctrl + I\` | Wrap selection in \`*italic*\` |
-
----
-
-### 💻 Code Blocks with Syntax Highlighting
-
-\`\`\`typescript
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  updatedAt: Date;
-}
-
-const welcomeUser = (name: string): string => {
-  return \`Welcome to Markview, \${name}!\`;
-};
-\`\`\`
-
----
-
-### 🚀 Key Features
-
-* **Instant Live Preview**: Powered by Marked and DOMPurify.
-* **Anchor-Based Synchronized Scrolling**: Headings and diagrams stay locked in sync.
-* **Export Options**: Export your work anytime to \`.md\`, HTML, or PDF.
-* **Cloud & Local Storage**: Save locally in your browser, or sign in to sync with Supabase.
-
-> 💡 **Privacy First:** Your documents stay strictly in your browser storage unless you choose to sign in and save to your private Cloud library.
+> All your writing stays private in your browser.
 `;
 
 const deriveDocTitle = (text: string): string => {
