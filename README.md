@@ -1,31 +1,56 @@
-# Markdown Live Preview
+# Markview
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)]()
-[![Privacy](https://img.shields.io/badge/Privacy-100%25%20Client--Side-success.svg)]()
+<p align="center">
+  <img src="public/image/markview.png" alt="Markview Logo" width="80" height="80" style="border-radius: 16px;" />
+</p>
 
-> A fast, secure, distraction-free online Markdown editor with live preview in the browser.
+<p align="center">
+  <strong>A modern, privacy-first live Markdown editor & workspace in the browser.</strong><br />
+  Featuring Monaco Editor, anchor-based synchronized scrolling, native Mermaid diagrams, local & cloud notes, and one-click exports.
+</p>
 
-[**Live Demo »**](https://markdownlivepreview.com/)
-
-![Markdown Live Preview Screenshot](public/image/sample.webp)
+<p align="center">
+  <a href="https://github.com/aminur-islam-sojib/markdown-live-preview/actions"><img src="https://img.shields.io/badge/Tests-63%20Passing-brightgreen.svg" alt="Tests Status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <img src="https://img.shields.io/badge/Privacy-100%25%20Client--First-success.svg" alt="Privacy First" />
+  <img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React 19" />
+  <img src="https://img.shields.io/badge/Tailwind-v4-38bdf8.svg" alt="Tailwind CSS v4" />
+</p>
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- **Split-Pane Live Preview**: Full-featured VS Code-powered editing experience via Monaco Editor on the left, live rendered GitHub-flavored Markdown on the right.
-- **Debounced Autosave & Resilience**: Document drafts automatically save to `localStorage` with a 300ms debounce and immediate flush on tab close. Works seamlessly with in-memory fallback if storage is disabled or quota is exceeded.
+- **Unified 44px Pro Header**: Ergonomic, distraction-free single toolbar maximizing canvas workspace.
+- **Split-Pane Live Editing**: Full VS Code editing power with [Monaco Editor](https://microsoft.github.io/monaco-editor/) on the left, live GitHub-Flavored Markdown preview on the right.
+- **Anchor-Based Bidirectional Sync Scroll**:
+  - Headings, code blocks, tables, and Mermaid diagrams remain tightly synchronized between editor and preview.
+  - Zero-lag bidirectional scrolling with event echo guards and `requestAnimationFrame`.
+  - Immediate alignment toggle (`Sync On` / `Sync Off`) with active visual status indicator.
+- **Native Mermaid Diagrams**: Live rendering of flowcharts, sequence diagrams, state diagrams, and entity-relationship charts.
+- **Local Notes Library & Drawer**:
+  - Slide-out library drawer (`Ctrl+O`) with search, tags, sorting, and pin/favorite support.
+  - Fully functional offline without requiring an account.
+- **Optional Cloud Sync (Supabase)**:
+  - Sign in with Email / Magic Link or OAuth (GitHub, Google) to sync notes across devices.
+  - State-aware Save button with quick note details, tags, and cloud status popover.
 - **Export & Import**:
-  - Export document as raw Markdown (`.md`)
-  - Export as standalone, formatted HTML (`.html`)
-  - Export to PDF with optimized print stylesheets
-  - Open files via file picker or **drag-and-drop** directly onto the editor
-- **Mermaid Diagrams**: Native rendering for flowcharts, sequence diagrams, state machines, and class diagrams (` ```mermaid `).
-- **Security & XSS Protection**: All rendered output is strictly sanitized via DOMPurify to strip `<script>`, `onerror=`, and malicious attack vectors.
-- **Dark & Light Mode**: Toggle between light and dimmed dark themes matching GitHub's preview styling.
-- **Synced Scrolling**: Synchronized scrolling between editor and preview panes.
-- **100% Private**: User text never leaves your browser. No backend databases, no server processing, no third-party document tracking.
+  - Export document to raw Markdown (`.md`), styled HTML (`.html`), or print-ready PDF (`.pdf`).
+  - Open `.md` files via file picker or drag-and-drop onto the workspace.
+- **XSS Protection & Sanitization**: Strict HTML sanitization via DOMPurify blocking script injection and dangerous attributes.
+- **Dark & Light Mode**: Seamless theme switching with system preference detection and smooth transitions.
+- **Privacy First**: Your notes remain strictly on your device unless you choose to authenticate and sync to your private cloud library.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Ctrl + S` / `Cmd + S` | Save note (local browser storage or Supabase Cloud) |
+| `Ctrl + O` | Toggle slide-out Notes Library |
+| `Ctrl + B` | Format selection as **Bold** (`**text**`) |
+| `Ctrl + I` | Format selection as *Italic* (`*text*`) |
 
 ---
 
@@ -41,28 +66,26 @@
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/tanabe/markdown-live-preview.git
+git clone https://github.com/aminur-islam-sojib/markdown-live-preview.git
 cd markdown-live-preview
 npm install
 ```
 
-*(Alternatively, run `make setup`)*
-
 ### Local Development
 
-Start the Vite development server:
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## 🧪 Testing & Code Quality
+## 🧪 Testing & Quality Assurance
 
-Run automated unit tests (powered by Vitest and JSDOM):
+Run the automated Vitest suite (8 test suites, 63 unit tests):
 
 ```bash
 npm test
@@ -74,7 +97,7 @@ Run TypeScript strict type checking:
 npm run type-check
 ```
 
-Build production distribution assets:
+Build production bundle:
 
 ```bash
 npm run build
@@ -88,38 +111,63 @@ npm run preview
 
 ---
 
-## 📂 Project Architecture
+## 📂 Architecture & Directory Structure
 
 ```text
 src/
-├── parser/
-│   └── sanitizer.ts       # DOMPurify security configuration and sanitization
-├── storage/
-│   └── autosave.ts        # Debounced storage manager with memory fallback
+├── components/          # React UI components
+│   ├── Header.tsx       # Unified 44px Pro Header with tab strip and view tools
+│   ├── EditorPane.tsx   # Monaco Editor integration with ref-stabilized listeners
+│   ├── PreviewPane.tsx  # Marked + DOMPurify + Mermaid with data-line anchors
+│   ├── NotesDrawer.tsx  # Slide-out notes library with search, tags, and filters
+│   ├── AuthModal.tsx    # Supabase authentication modal (Email, GitHub, Google)
+│   ├── SaveNoteModal.tsx# Note metadata editor (Title, Description, Tags)
+│   ├── MyNotesModal.tsx # Dual-pane cloud notes browser
+│   ├── Footer.tsx       # Status bar with Tanabe attribution & stats
+│   └── Toast.tsx        # Spring-animated toast notification system
 ├── export/
-│   └── file-io.ts         # Export .md/.html, drag-and-drop, and file utilities
-└── main.js                # Application initialization and UI bindings
+│   └── file-io.ts       # Export (.md, .html, .pdf) & file reader utilities
+├── parser/
+│   └── sanitizer.ts     # DOMPurify security configuration & safe SVG support
+├── storage/
+│   ├── autosave.ts      # Debounced local persistence with fallback
+│   └── local-notes.ts   # Browser-local note management & indexing
+├── supabase/
+│   ├── client.ts        # Supabase client initialization
+│   ├── auth.ts          # Auth state subscriptions & sign in/out
+│   └── documents.ts     # Cloud document CRUD operations
+├── utils/
+│   └── sync-scroll.ts   # Piecewise linear anchor interpolation for sync scroll
+├── types.ts             # TypeScript definitions & data models
+├── App.tsx              # Application state coordinator & workspace layout
+└── main.tsx             # Application bootstrap & DOM entry point
 tests/
-├── sanitizer.test.ts      # XSS injection defense and security test suite
-├── autosave.test.ts       # Debounce, quota error handling, and persistence tests
-├── file-io.test.ts        # Export document generation and file reader tests
-└── smoke.test.ts          # Environment and DOM smoke tests
+├── sync-scroll.test.ts  # Anchor extraction & interpolation test suite
+├── sanitizer.test.ts    # XSS injection defense and security tests
+├── autosave.test.ts     # Debounce, persistence, and storage tests
+├── file-io.test.ts      # Export document generation tests
+├── local-notes.test.ts  # Local note CRUD and search tests
+├── animation.test.ts    # Physics & spring timing tests
+├── supabase.test.ts     # Supabase auth & client tests
+└── smoke.test.ts        # Tooling and DOM smoke tests
 ```
 
 ---
 
-## 🔒 Privacy & Security
+## 🔒 Security & Privacy
 
-Your documents belong to you:
-- All Markdown parsing and diagram rendering occurs entirely on your device.
-- Document content is stored strictly in your browser's local storage and is never transmitted over any network.
-- Rendered HTML is checked against an XSS test suite preventing arbitrary code execution.
+- **Client-First Architecture**: Parsing, previewing, and diagram generation occur 100% on your machine.
+- **Strict Content Sanitization**: DOMPurify sanitizes all parsed markdown HTML, preventing script execution, malicious event handlers, and unsafe protocols.
+- **Zero Document Tracking**: No analytics, telemetry, or user documents are sent to any remote server without explicit user authentication.
 
 ---
 
 ## 📄 Credits & Attribution
 
-This project is derived from the open-source repository created by [Hideaki Tanabe (@tanabe)](https://github.com/tanabe/markdown-live-preview). We gratefully acknowledge and preserve the original work and attribution.
+Developed and maintained by [Aminur Islam Sojib](https://github.com/aminur-islam-sojib/markdown-live-preview).  
+Derived from the open-source project created by [Hideaki Tanabe (@tanabe)](https://github.com/tanabe/markdown-live-preview). We gratefully preserve the original author's work, attribution, and license.
+
+---
 
 ## 📜 License
 

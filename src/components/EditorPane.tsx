@@ -25,12 +25,18 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   const saveTriggerRef = useRef(onSaveTrigger);
   saveTriggerRef.current = onSaveTrigger;
 
+  const onScrollChangeRef = useRef(onScrollChange);
+  onScrollChangeRef.current = onScrollChange;
+
+  const onCursorChangeRef = useRef(onCursorChange);
+  onCursorChangeRef.current = onCursorChange;
+
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor;
 
     // Track cursor movement
     editor.onDidChangeCursorPosition((e) => {
-      onCursorChange({
+      onCursorChangeRef.current({
         lineNumber: e.position.lineNumber,
         column: e.position.column
       });
@@ -43,9 +49,9 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
 
     // Sync scroll
     editor.onDidScrollChange((e) => {
-      if (onScrollChange) {
+      if (onScrollChangeRef.current) {
         const layout = editor.getLayoutInfo();
-        onScrollChange(e.scrollTop, e.scrollHeight, layout.height);
+        onScrollChangeRef.current(e.scrollTop, e.scrollHeight, layout.height);
       }
     });
 

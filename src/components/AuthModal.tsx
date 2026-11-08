@@ -110,11 +110,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       <div className={`relative w-full max-w-sm bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8)] ring-1 ring-black/5 dark:ring-white/10 z-10 dialog-spring dialog-spring-${phase} overflow-hidden text-xs`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            {tab === 'signin' && 'Sign In to Markview'}
-            {tab === 'signup' && 'Create Free Account'}
-            {tab === 'magic' && 'Magic Link Login'}
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/image/markview.png"
+              alt="Markview"
+              className="w-7 h-7 rounded-lg object-contain shadow-xs"
+            />
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {tab === 'signin' && 'Sign In to Markview'}
+              {tab === 'signup' && 'Create Free Account'}
+              {tab === 'magic' && 'Magic Link Login'}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as monaco from 'monaco-editor';
 import { Header } from './components/Header';
-import { SecondaryToolbar } from './components/SecondaryToolbar';
 import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
 import { SaveNoteModal } from './components/SaveNoteModal';
@@ -12,6 +11,7 @@ import { Footer } from './components/Footer';
 import { Toast, ToastData } from './components/Toast';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
 import { AutosaveManager, debounce } from './storage/autosave';
+import { saveLocalNote } from './storage/local-notes';
 import {
   downloadFile,
   deriveFilename,
@@ -21,89 +21,80 @@ import {
 } from './export/file-io';
 import { onAuthStateChange, signOut as supabaseSignOut } from './supabase/auth';
 import {
+  calculatePreviewScroll,
+  calculateEditorScroll,
+  extractAnchorsFromContainer
+} from './utils/sync-scroll';
+import {
   createCloudDocument,
   updateCloudDocument,
   getCloudDocument,
-  CloudDocument
 } from './supabase/documents';
 
-const DEFAULT_MARKDOWN = `# Markdown syntax guide
+const DEFAULT_MARKDOWN = `# Welcome to Markview ✨
 
-## Headers
+> A modern, privacy-first live Markdown workspace with Monaco Editor, instant synchronized preview, native Mermaid diagrams, and export options.
 
-# This is a Heading h1
-## This is a Heading h2
-###### This is a Heading h6
+---
 
-## Emphasis
+### ⚡ Quick Start Checklist
+- [x] **Live Editing**: Edit text in the editor on the left; the preview updates instantly on the right.
+- [ ] **Synchronized Scrolling**: Click **Sync On** in the header to lock both panes together with anchor alignment.
+- [ ] **Formatting Tools**: Select text and press \`Ctrl+B\` (Bold), \`Ctrl+I\` (Italic), or use the header toolbar.
+- [ ] **Notes Library**: Press \`Ctrl+O\` or click the menu button (≡) on the top-left to manage your notes.
+- [ ] **Save Your Work**: Press \`Ctrl+S\` to save locally or sync with your Cloud account.
 
-*This text will be italic*  
-_This will also be italic_
+---
 
-**This text will be bold**  
-__This will also be bold__
+### 📊 Live Mermaid Diagrams
+Markview renders native Mermaid diagrams automatically:
 
-_You **can** combine them_
-
-## Lists
-
-### Unordered
-
-* Item 1
-* Item 2
-* Item 2a
-* Item 2b
-    * Item 3a
-    * Item 3b
-
-### Ordered
-
-1. Item 1
-2. Item 2
-3. Item 3
-    1. Item 3a
-    2. Item 3b
-
-## Images
-
-![This is an alt text.](/image/Markdown-mark.svg "This is a sample image.")
-
-## Links
-
-You may be using [Markdown Live Preview](https://markdownlivepreview.com/).
-
-## Blockquotes
-
-> Markdown is a lightweight markup language with plain-text-formatting syntax, created in 2004 by John Gruber with Aaron Swartz.
->
->> Markdown is often used to format readme files, for writing messages in online discussion forums, and to create rich text using a plain text editor.
-
-## Tables
-
-| Left columns  | Right columns |
-| ------------- |:-------------:|
-| left foo      | right foo     |
-| left bar      | right bar     |
-| left baz      | right baz     |
-
-## Blocks of code
-
-\`\`\`js
-let message = 'Hello world';
-alert(message);
-\`\`\`
-
-## Mermaid diagrams
 \`\`\`mermaid
-graph TD
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Finish]
-  B -->|No| D[Alternate]
+graph LR
+  A[📝 Markdown Input] --> B(⚡ Monaco Editor)
+  B --> C{🛡️ DOMPurify}
+  C --> D[🎨 Live HTML Preview]
+  D --> E[💾 Export / Cloud Sync]
 \`\`\`
 
-## Inline code
+---
 
-This web site is using \`markedjs/marked\`.
+### ⌨️ Essential Keyboard Shortcuts
+
+| Action | Shortcut | Description |
+| :--- | :---: | :--- |
+| **Save Note** | \`Ctrl + S\` / \`Cmd + S\` | Save locally or sync to Cloud |
+| **Notes Drawer** | \`Ctrl + O\` | Open sliding Notes Library |
+| **Toggle Bold** | \`Ctrl + B\` | Wrap selection in \`**bold**\` |
+| **Toggle Italic** | \`Ctrl + I\` | Wrap selection in \`*italic*\` |
+
+---
+
+### 💻 Code Blocks with Syntax Highlighting
+
+\`\`\`typescript
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: Date;
+}
+
+const welcomeUser = (name: string): string => {
+  return \`Welcome to Markview, \${name}!\`;
+};
+\`\`\`
+
+---
+
+### 🚀 Key Features
+
+* **Instant Live Preview**: Powered by Marked and DOMPurify.
+* **Anchor-Based Synchronized Scrolling**: Headings and diagrams stay locked in sync.
+* **Export Options**: Export your work anytime to \`.md\`, HTML, or PDF.
+* **Cloud & Local Storage**: Save locally in your browser, or sign in to sync with Supabase.
+
+> 💡 **Privacy First:** Your documents stay strictly in your browser storage unless you choose to sign in and save to your private Cloud library.
 `;
 
 const deriveDocTitle = (text: string): string => {
@@ -171,6 +162,13 @@ export const App: React.FC = () => {
   // 5. Auth & Cloud State
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeCloudDocId, setActiveCloudDocId] = useState<string | null>(null);
+  const [activeLocalDocId, setActiveLocalDocId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('com.markdownlivepreview_active_local_id') || null;
+    } catch {
+      return null;
+    }
+  });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({
     text: 'Saved just now',
     type: 'saved'
@@ -218,11 +216,28 @@ export const App: React.FC = () => {
   const activeCloudDocIdRef = useRef(activeCloudDocId);
   activeCloudDocIdRef.current = activeCloudDocId;
 
+  const activeLocalDocIdRef = useRef(activeLocalDocId);
+  activeLocalDocIdRef.current = activeLocalDocId;
+
   // Refs
   const editorInstanceRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronized scrolling tracking refs
+  const syncScrollRef = useRef(syncScroll);
+  syncScrollRef.current = syncScroll;
+  const scrollSourceRef = useRef<'editor' | 'preview' | null>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
 
   // Sync theme with HTML data-theme
   useEffect(() => {
@@ -298,15 +313,151 @@ export const App: React.FC = () => {
     }
   };
 
-  // Sync scroll from editor to preview
+  // Bidirectional synchronized scrolling: Editor -> Preview
   const handleEditorScroll = (scrollTop: number, scrollHeight: number, height: number) => {
-    if (!syncScroll || !previewContainerRef.current) return;
-    const maxScrollTop = scrollHeight - height;
-    if (maxScrollTop <= 0) return;
-    const ratio = scrollTop / maxScrollTop;
+    if (!syncScrollRef.current || !previewContainerRef.current) return;
+    if (scrollSourceRef.current === 'preview') return;
+
+    scrollSourceRef.current = 'editor';
+    if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      scrollSourceRef.current = null;
+    }, 100);
+
+    const editor = editorInstanceRef.current;
     const preview = previewContainerRef.current;
-    const targetY = (preview.scrollHeight - preview.clientHeight) * ratio;
-    preview.scrollTo({ top: targetY });
+    if (!editor || !preview) return;
+
+    const maxEditorScroll = scrollHeight - height;
+    const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
+
+    // Calculate fractional line from visible ranges
+    const visibleRanges = editor.getVisibleRanges();
+    const topLine = visibleRanges.length > 0 ? visibleRanges[0].startLineNumber : 1;
+    const lineTop = editor.getTopForLineNumber(topLine);
+    const nextLineTop = editor.getTopForLineNumber(topLine + 1);
+    const lineProgress = nextLineTop > lineTop ? (scrollTop - lineTop) / (nextLineTop - lineTop) : 0;
+    const fractionalLine = topLine + Math.max(0, Math.min(1, lineProgress));
+
+    const anchors = extractAnchorsFromContainer(preview);
+    const targetPreviewScroll = calculatePreviewScroll(
+      fractionalLine,
+      scrollTop,
+      maxEditorScroll,
+      maxPreviewScroll,
+      anchors
+    );
+
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      preview.scrollTop = targetPreviewScroll;
+    });
+  };
+
+  // Bidirectional synchronized scrolling: Preview -> Editor
+  const handlePreviewScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
+    if (!syncScrollRef.current || !editorInstanceRef.current) return;
+    if (scrollSourceRef.current === 'editor') return;
+
+    scrollSourceRef.current = 'preview';
+    if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      scrollSourceRef.current = null;
+    }, 100);
+
+    const editor = editorInstanceRef.current;
+    const preview = previewContainerRef.current;
+    if (!editor || !preview) return;
+
+    const layout = editor.getLayoutInfo();
+    const maxEditorScroll = editor.getScrollHeight() - layout.height;
+    const maxPreviewScroll = scrollHeight - clientHeight;
+    const model = editor.getModel();
+    const totalLines = model ? model.getLineCount() : 1;
+
+    const anchors = extractAnchorsFromContainer(preview);
+    const { targetLine } = calculateEditorScroll(
+      scrollTop,
+      maxPreviewScroll,
+      maxEditorScroll,
+      anchors,
+      totalLines
+    );
+
+    if (targetLine <= 1) {
+      editor.setScrollTop(0);
+      return;
+    }
+    if (maxPreviewScroll > 0 && scrollTop >= maxPreviewScroll - 2) {
+      editor.setScrollTop(maxEditorScroll);
+      return;
+    }
+
+    const lineInt = Math.floor(targetLine);
+    const lineFrac = targetLine - lineInt;
+    const lineTop = editor.getTopForLineNumber(lineInt);
+    const nextTop = editor.getTopForLineNumber(lineInt + 1);
+    const targetEditorTop = lineTop + (nextTop - lineTop) * lineFrac;
+
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      editor.setScrollTop(targetEditorTop);
+    });
+  };
+
+  // Toggle sync scroll with immediate alignment & viewmode awareness
+  const handleToggleSyncScroll = () => {
+    setSyncScroll((prev) => {
+      const next = !prev;
+      syncScrollRef.current = next; // Immediately update ref to avoid stale closure
+      try {
+        localStorage.setItem('com.markdownlivepreview_sync_scroll', String(next));
+      } catch {}
+
+      if (next) {
+        // Auto-switch to split view if currently in single pane mode
+        if (viewMode !== 'split') {
+          setViewMode('split');
+          try {
+            localStorage.setItem('com.markdownlivepreview_view_mode', 'split');
+          } catch {}
+          setTimeout(() => editorInstanceRef.current?.layout(), 50);
+        }
+
+        // Instantly align preview to editor
+        setTimeout(() => {
+          const editor = editorInstanceRef.current;
+          const preview = previewContainerRef.current;
+          if (editor && preview) {
+            const layout = editor.getLayoutInfo();
+            const visibleRanges = editor.getVisibleRanges();
+            const topLine = visibleRanges.length > 0 ? visibleRanges[0].startLineNumber : 1;
+            const lineTop = editor.getTopForLineNumber(topLine);
+            const nextLineTop = editor.getTopForLineNumber(topLine + 1);
+            const lineProgress = nextLineTop > lineTop ? (editor.getScrollTop() - lineTop) / (nextLineTop - lineTop) : 0;
+            const fractionalLine = topLine + Math.max(0, Math.min(1, lineProgress));
+
+            const anchors = extractAnchorsFromContainer(preview);
+            const maxEditorScroll = editor.getScrollHeight() - layout.height;
+            const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
+            const targetY = calculatePreviewScroll(
+              fractionalLine,
+              editor.getScrollTop(),
+              maxEditorScroll,
+              maxPreviewScroll,
+              anchors
+            );
+            preview.scrollTop = targetY;
+          }
+        }, 80);
+
+        showToast({ message: 'Sync scroll enabled (panes locked)', type: 'info' });
+      } else {
+        showToast({ message: 'Sync scroll disabled (panes unlocked)', type: 'info' });
+      }
+
+      return next;
+    });
   };
 
   // Handle Save Trigger (Button click or Ctrl+S)
@@ -367,6 +518,17 @@ export const App: React.FC = () => {
       // Save locally to localStorage without opening a disruptive modal
       autosaveRef.current?.saveImmediately(currentDocContent);
       setLastSavedContent(currentDocContent);
+
+      const saved = saveLocalNote({
+        id: activeLocalDocIdRef.current || undefined,
+        title: currentDocTitle,
+        content: currentDocContent
+      });
+      setActiveLocalDocId(saved.id);
+      try {
+        localStorage.setItem('com.markdownlivepreview_active_local_id', saved.id);
+      } catch {}
+
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
       setSaveStatus({ text: 'Saved locally', type: 'saved' });
@@ -524,10 +686,13 @@ export const App: React.FC = () => {
       setContent(DEFAULT_MARKDOWN);
       setLastSavedContent(DEFAULT_MARKDOWN);
       autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
-      setDocTitle('Untitled Document');
+      const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
+      setDocTitle(defaultTitle);
       setActiveCloudDocId(null);
+      setActiveLocalDocId(null);
       try {
         localStorage.removeItem('com.markdownlivepreview_doc_title');
+        localStorage.removeItem('com.markdownlivepreview_active_local_id');
       } catch {}
     }
   };
@@ -539,9 +704,12 @@ export const App: React.FC = () => {
     autosaveRef.current?.saveImmediately(blank);
     setDocTitle('Untitled Note');
     setActiveCloudDocId(null);
+    setActiveLocalDocId(null);
     try {
       localStorage.setItem('com.markdownlivepreview_doc_title', 'Untitled Note');
+      localStorage.removeItem('com.markdownlivepreview_active_local_id');
     } catch {}
+    showToast({ message: 'Created new note', type: 'info' });
   };
 
   const handleFormat = (type: 'bold' | 'italic' | 'link' | 'quote' | 'code') => {
@@ -644,11 +812,21 @@ export const App: React.FC = () => {
         }
       }
     } else {
+      const saved = saveLocalNote({
+        id: activeLocalDocIdRef.current || undefined,
+        title: cleanTitle,
+        content
+      });
+      setActiveLocalDocId(saved.id);
+      try {
+        localStorage.setItem('com.markdownlivepreview_active_local_id', saved.id);
+      } catch {}
+
       setLastSavedContent(content);
       setSaveStatus({ text: 'Saved just now', type: 'saved' });
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1500);
-      showToast({ message: 'Saved locally', type: 'success' });
+      showToast({ message: 'Saved to browser storage', type: 'success' });
     }
   };
 
@@ -694,7 +872,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors">
-      {/* Top Main Header */}
+      {/* Unified 44px Pro Header */}
       <Header
         docTitle={docTitle}
         onNewDoc={handleNewDoc}
@@ -725,10 +903,6 @@ export const App: React.FC = () => {
           navigator.clipboard.writeText(content);
           showToast({ message: 'Copied Markdown to clipboard', type: 'info' });
         }}
-      />
-
-      {/* Secondary Formatting & View Toolbar */}
-      <SecondaryToolbar
         viewMode={viewMode}
         onViewModeChange={(m) => {
           setViewMode(m);
@@ -739,17 +913,7 @@ export const App: React.FC = () => {
         }}
         onFormat={handleFormat}
         syncScroll={syncScroll}
-        onToggleSyncScroll={() => {
-          setSyncScroll((prev) => {
-            const next = !prev;
-            try {
-              localStorage.setItem('com.markdownlivepreview_sync_scroll', String(next));
-            } catch {}
-            return next;
-          });
-        }}
-        onCopy={() => navigator.clipboard.writeText(content)}
-        onReset={handleResetDoc}
+        onToggleSyncScroll={handleToggleSyncScroll}
       />
 
       {/* Main Workspace (Editor + Split Divider + Preview) */}
@@ -796,6 +960,7 @@ export const App: React.FC = () => {
               content={content}
               theme={theme}
               previewRef={previewContainerRef}
+              onScroll={handlePreviewScroll}
             />
           </div>
         )}
@@ -836,7 +1001,7 @@ export const App: React.FC = () => {
       <NotesDrawer
         isOpen={isNotesDrawerOpen}
         onClose={() => setIsNotesDrawerOpen(false)}
-        activeDocId={activeCloudDocId}
+        activeDocId={activeCloudDocId || activeLocalDocId}
         onSelectNote={handleSelectNote}
         onNewNote={handleNewDoc}
         onOpenExplorerModal={() => setIsMyNotesModalOpen(true)}
@@ -847,7 +1012,7 @@ export const App: React.FC = () => {
       <MyNotesModal
         isOpen={isMyNotesModalOpen}
         onClose={() => setIsMyNotesModalOpen(false)}
-        activeDocId={activeCloudDocId}
+        activeDocId={activeCloudDocId || activeLocalDocId}
         onSelectDoc={handleSelectNote}
         onNewNote={handleNewDoc}
         currentUser={currentUser}
