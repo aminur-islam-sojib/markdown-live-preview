@@ -17,8 +17,7 @@ import {
   Check,
   FileText
 } from 'lucide-react';
-import { marked } from 'marked';
-import { sanitizeHtml } from '../parser/sanitizer';
+import { parseMarkdown } from '../parser/markdown-parser';
 import { listCloudDocuments, deleteCloudDocument, CloudDocument } from '../supabase/documents';
 import {
   LocalNote,
@@ -166,8 +165,7 @@ export const MyNotesModal: React.FC<MyNotesModalProps> = ({
       setPreviewHtml('');
       return;
     }
-    const raw = marked.parse(selectedDoc.content || '') as string;
-    setPreviewHtml(sanitizeHtml(raw));
+    setPreviewHtml(parseMarkdown(selectedDoc.content || '', false));
   }, [selectedDoc]);
 
   if (!isMounted) return null;
