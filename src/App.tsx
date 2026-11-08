@@ -33,16 +33,31 @@ import {
 
 const DEFAULT_MARKDOWN = `# Welcome to Markview
 
-A minimal, live Markdown workspace with instant preview, diagrams, and math.
+A fast, distraction-free Markdown workspace with live preview, math, and diagrams.
 
-### Quick tips
-- Format with **bold** (\`**text**\`), *italic* (\`*text*\`), or \`inline code\`
-- Write LaTeX math inline with \`$E = mc^2$\` or display math:
-  $$ \\int_{-\\infty}^\\infty e^{-x^2} dx = \\sqrt{\\pi} $$
-- Render Mermaid diagrams with \`\`\`mermaid
-- Press \`Ctrl + S\` to save, or \`Ctrl + O\` to open your notes drawer
+> 💡 **Tip:** Press \`Ctrl + S\` to save your note, or \`Ctrl + O\` to open your notes drawer.
 
-> All your writing stays private in your browser.
+### What you can do here
+- **Style text**: Use **bold**, *italic*, ~~strikethrough~~, or \`inline code\`
+- **Interactive checklist**:
+  - [x] Write on the left, watch live preview on the right
+  - [ ] Toggle **Sync On** in the header to lock scrolling
+  - [ ] Switch views anytime: **Split**, **Editor**, or **Preview**
+
+### LaTeX Math
+Write inline math like $E = mc^2$ or beautiful display equations:
+
+$$ \\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi} $$
+
+### Live Diagrams
+Markview renders native Mermaid diagrams in real-time:
+
+\`\`\`mermaid
+graph LR
+  A[Draft] --> B(Live Preview) --> C{Export}
+  C -->|Save| D[Cloud / Local]
+  C -->|Download| E[.md / PDF / HTML]
+\`\`\`
 `;
 
 const deriveDocTitle = (text: string): string => {

@@ -31,31 +31,183 @@
   background: rgba(110, 118, 129, 0.7);
 }
 
-/* Base styles for preview & mermaid */
+/* Modern clean preview typography & element styling */
 .markdown-body {
   background-color: transparent !important;
   color: inherit !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif !important;
+  line-height: 1.7 !important;
+  font-size: 15px !important;
 }
 
-.markdown-body pre.mermaid {
-  background-color: transparent !important;
-  border: none !important;
-  display: flex;
-  justify-content: center;
-  padding: 1rem 0;
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  border-bottom: none !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: inherit !important;
 }
 
+.markdown-body h1 {
+  font-size: 1.85rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.markdown-body h2 {
+  font-size: 1.35rem !important;
+  margin-top: 1.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.markdown-body h3 {
+  font-size: 1.12rem !important;
+  margin-top: 1.4rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+/* Modern callout blockquotes */
+.markdown-body blockquote {
+  border-left: 3px solid #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 1rem !important;
+  margin: 1.25rem 0 !important;
+  color: inherit !important;
+}
+
+[data-theme="dark"] .markdown-body blockquote {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-left-color: #60a5fa !important;
+}
+
+/* Modern inline code pills */
+.markdown-body :not(pre) > code {
+  background-color: rgba(148, 163, 184, 0.15) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.15em 0.4em !important;
+  font-size: 0.88em !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace !important;
+  color: inherit !important;
+}
+
+/* Modern pre code blocks */
+.markdown-body pre {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem 1.25rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .markdown-body pre {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+/* Modern KaTeX display card */
 .markdown-body .katex-display {
   margin: 1.25rem 0;
+  padding: 0.875rem 1.25rem;
+  background-color: rgba(248, 250, 252, 0.8);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
   text-align: center;
-  padding: 0.5rem 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .markdown-body .katex-display {
+  background-color: rgba(15, 23, 42, 0.6);
+  border-color: #1e293b;
 }
 
 .markdown-body .katex {
-  font-size: 1.1em;
+  font-size: 1.12em;
+}
+
+/* Modern Mermaid card */
+.markdown-body pre.mermaid {
+  background-color: rgba(248, 250, 252, 0.7) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 1rem !important;
+  margin: 1.25rem 0 !important;
+}
+
+[data-theme="dark"] .markdown-body pre.mermaid {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+  border-color: #1e293b !important;
+}
+
+.markdown-body .mermaid-rendered {
+  background-color: rgba(248, 250, 252, 0.7);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1rem;
+  margin: 1.25rem 0;
+}
+
+[data-theme="dark"] .markdown-body .mermaid-rendered {
+  background-color: rgba(15, 23, 42, 0.5);
+  border-color: #1e293b;
+}
+
+/* Modern clean tables */
+.markdown-body table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  margin: 1.25rem 0 !important;
+}
+
+[data-theme="dark"] .markdown-body table {
+  border-color: #1e293b !important;
+}
+
+.markdown-body table th {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0.625rem 1rem !important;
+}
+
+[data-theme="dark"] .markdown-body table th {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  border-color: #1e293b !important;
+}
+
+.markdown-body table td {
+  padding: 0.625rem 1rem !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+[data-theme="dark"] .markdown-body table td {
+  border-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+.markdown-body table tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* Modern Task list checkbox */
+.markdown-body input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  accent-color: #2563eb;
+  margin-right: 0.5rem;
+  vertical-align: -0.15rem;
+  cursor: pointer;
 }
 
 /* Premium soft spring easing & modal animation physics */

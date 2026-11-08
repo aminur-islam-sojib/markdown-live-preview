@@ -165,7 +165,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       <div
         ref={outputRef}
         id="output"
-        className="markdown-body max-w-4xl mx-auto prose dark:prose-invert prose-slate"
+        className="markdown-body max-w-3xl mx-auto py-2"
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
     </div>
