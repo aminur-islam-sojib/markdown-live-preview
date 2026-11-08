@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as monaco from 'monaco-editor';
 import { Header } from './components/Header';
-import { SecondaryToolbar } from './components/SecondaryToolbar';
 import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
 import { SaveNoteModal } from './components/SaveNoteModal';
@@ -730,7 +729,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors">
-      {/* Top Main Header */}
+      {/* Unified 44px Pro Header */}
       <Header
         docTitle={docTitle}
         onNewDoc={handleNewDoc}
@@ -761,10 +760,6 @@ export const App: React.FC = () => {
           navigator.clipboard.writeText(content);
           showToast({ message: 'Copied Markdown to clipboard', type: 'info' });
         }}
-      />
-
-      {/* Secondary Formatting & View Toolbar */}
-      <SecondaryToolbar
         viewMode={viewMode}
         onViewModeChange={(m) => {
           setViewMode(m);
@@ -784,8 +779,6 @@ export const App: React.FC = () => {
             return next;
           });
         }}
-        onCopy={() => navigator.clipboard.writeText(content)}
-        onReset={handleResetDoc}
       />
 
       {/* Main Workspace (Editor + Split Divider + Preview) */}
