@@ -17,6 +17,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { useModalAnimation } from '../hooks/useModalAnimation';
+import { ConfirmDialog } from './ConfirmDialog';
 import {
   LocalNote,
   listLocalNotes,
@@ -63,6 +64,7 @@ export const NotesDrawer: React.FC<NotesDrawerProps> = ({
   const [cloudNotes, setCloudNotes] = useState<CloudDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<UnifiedNote | null>(null);
 
   const { isMounted, phase } = useModalAnimation(isOpen, 220);
 
@@ -161,15 +163,20 @@ export const NotesDrawer: React.FC<NotesDrawerProps> = ({
 
   if (!isMounted) return null;
 
-  const handleDelete = async (e: React.MouseEvent, note: UnifiedNote) => {
+  const handleDelete = (e: React.MouseEvent, note: UnifiedNote) => {
     e.stopPropagation();
-    if (!window.confirm(`Delete "${note.title}"? This cannot be undone.`)) return;
+    setNoteToDelete(note);
+  };
 
-    if (note.source === 'cloud') {
-      await deleteCloudDocument(note.id);
+  const handleConfirmDelete = async () => {
+    if (!noteToDelete) return;
+
+    if (noteToDelete.source === 'cloud') {
+      await deleteCloudDocument(noteToDelete.id);
     } else {
-      deleteLocalNote(note.id);
+      deleteLocalNote(noteToDelete.id);
     }
+    setNoteToDelete(null);
     reloadNotes();
   };
 
@@ -501,6 +508,20 @@ export const NotesDrawer: React.FC<NotesDrawerProps> = ({
           <span className="text-[10px] text-slate-400 font-mono">Esc to close</span>
         </div>
       </aside>
+
+      <ConfirmDialog
+        isOpen={!!noteToDelete}
+        title="Delete Note"
+        message={
+          <span>
+            Are you sure you want to delete <span className="font-semibold text-slate-800 dark:text-slate-200">"{noteToDelete?.title}"</span>? This cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Note"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setNoteToDelete(null)}
+      />
     </div>
   );
 };

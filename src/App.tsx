@@ -9,6 +9,7 @@ import { MyNotesModal } from './components/MyNotesModal';
 import { NotesDrawer, UnifiedNote } from './components/NotesDrawer';
 import { Footer } from './components/Footer';
 import { Toast, ToastData } from './components/Toast';
+import { ConfirmDialog, DialogVariant } from './components/ConfirmDialog';
 import { ViewMode, Theme, CursorPosition, SaveStatus, Visibility } from './types';
 import { AutosaveManager, debounce } from './storage/autosave';
 import { saveLocalNote } from './storage/local-notes';
@@ -155,6 +156,12 @@ export const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [alertData, setAlertData] = useState<{ title: string; message: string; variant?: DialogVariant } | null>(null);
+
+  const showAlert = useCallback((title: string, message: string, variant: DialogVariant = 'warning') => {
+    setAlertData({ title, message, variant });
+  }, []);
 
   const showToast = useCallback((data: Omit<ToastData, 'id'>) => {
     setToast({
@@ -596,7 +603,7 @@ export const App: React.FC = () => {
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!isMarkdownFile(file)) {
-        window.alert('Please drop a Markdown (.md) or plain text file.');
+        showAlert('Unsupported File Type', 'Please drop a Markdown (.md, .markdown) or plain text file.', 'warning');
         return;
       }
       try {
@@ -610,7 +617,7 @@ export const App: React.FC = () => {
           localStorage.setItem('com.markdownlivepreview_doc_title', name);
         } catch {}
       } catch {
-        window.alert('Unable to read this file. Please try again.');
+        showAlert('File Read Error', 'Unable to read this file. Please verify file permissions and try again.', 'danger');
       }
     };
 
@@ -625,7 +632,7 @@ export const App: React.FC = () => {
       window.removeEventListener('dragleave', handleDragLeave);
       window.removeEventListener('drop', handleDrop);
     };
-  }, []);
+  }, [showAlert]);
 
   // Handlers
   const handleOpenFile = async (file: File) => {
@@ -640,24 +647,28 @@ export const App: React.FC = () => {
         localStorage.setItem('com.markdownlivepreview_doc_title', name);
       } catch {}
     } catch {
-      window.alert('Unable to read file. Please try again.');
+      showAlert('File Read Error', 'Unable to read file. Please try again.', 'danger');
     }
   };
 
   const handleResetDoc = () => {
-    if (window.confirm('Are you sure you want to reset? Your unsaved changes will be lost.')) {
-      setContent(DEFAULT_MARKDOWN);
-      setLastSavedContent(DEFAULT_MARKDOWN);
-      autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
-      const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
-      setDocTitle(defaultTitle);
-      setActiveCloudDocId(null);
-      setActiveLocalDocId(null);
-      try {
-        localStorage.removeItem('com.markdownlivepreview_doc_title');
-        localStorage.removeItem('com.markdownlivepreview_active_local_id');
-      } catch {}
-    }
+    setIsResetConfirmOpen(true);
+  };
+
+  const confirmResetDoc = () => {
+    setContent(DEFAULT_MARKDOWN);
+    setLastSavedContent(DEFAULT_MARKDOWN);
+    autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
+    const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
+    setDocTitle(defaultTitle);
+    setActiveCloudDocId(null);
+    setActiveLocalDocId(null);
+    try {
+      localStorage.removeItem('com.markdownlivepreview_doc_title');
+      localStorage.removeItem('com.markdownlivepreview_active_local_id');
+    } catch {}
+    setIsResetConfirmOpen(false);
+    showToast({ message: 'Document reset to default template', type: 'info' });
   };
 
   const handleNewDoc = () => {
@@ -979,6 +990,29 @@ export const App: React.FC = () => {
         onSelectDoc={handleSelectNote}
         onNewNote={handleNewDoc}
         currentUser={currentUser}
+      />
+
+      {/* Reset Document Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isResetConfirmOpen}
+        title="Reset Document"
+        message="Are you sure you want to reset? Your unsaved changes in your current note will be replaced with the default template."
+        confirmLabel="Reset Document"
+        variant="danger"
+        onConfirm={confirmResetDoc}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
+
+      {/* General Alert / Error Dialog */}
+      <ConfirmDialog
+        isOpen={!!alertData}
+        title={alertData?.title || ''}
+        message={alertData?.message || ''}
+        variant={alertData?.variant || 'warning'}
+        confirmLabel="OK"
+        isAlert={true}
+        onConfirm={() => setAlertData(null)}
+        onCancel={() => setAlertData(null)}
       />
 
       {/* Floating Micro Toast Notifications */}
