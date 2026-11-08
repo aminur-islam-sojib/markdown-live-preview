@@ -31,83 +31,70 @@ import {
   getCloudDocument,
 } from './supabase/documents';
 
-const DEFAULT_MARKDOWN = `# Markdown syntax guide
+const DEFAULT_MARKDOWN = `# Welcome to Markview ✨
 
-## Headers
+> A modern, privacy-first live Markdown workspace with Monaco Editor, instant synchronized preview, native Mermaid diagrams, and export options.
 
-# This is a Heading h1
-## This is a Heading h2
-###### This is a Heading h6
+---
 
-## Emphasis
+### ⚡ Quick Start Checklist
+- [x] **Live Editing**: Edit text in the editor on the left; the preview updates instantly on the right.
+- [ ] **Synchronized Scrolling**: Click **Sync On** in the header to lock both panes together with anchor alignment.
+- [ ] **Formatting Tools**: Select text and press \`Ctrl+B\` (Bold), \`Ctrl+I\` (Italic), or use the header toolbar.
+- [ ] **Notes Library**: Press \`Ctrl+O\` or click the menu button (≡) on the top-left to manage your notes.
+- [ ] **Save Your Work**: Press \`Ctrl+S\` to save locally or sync with your Cloud account.
 
-*This text will be italic*  
-_This will also be italic_
+---
 
-**This text will be bold**  
-__This will also be bold__
+### 📊 Live Mermaid Diagrams
+Markview renders native Mermaid diagrams automatically:
 
-_You **can** combine them_
-
-## Lists
-
-### Unordered
-
-* Item 1
-* Item 2
-* Item 2a
-* Item 2b
-    * Item 3a
-    * Item 3b
-
-### Ordered
-
-1. Item 1
-2. Item 2
-3. Item 3
-    1. Item 3a
-    2. Item 3b
-
-## Images
-
-![This is an alt text.](/image/Markdown-mark.svg "This is a sample image.")
-
-## Links
-
-You may be using [Markdown Live Preview](https://markdownlivepreview.com/).
-
-## Blockquotes
-
-> Markdown is a lightweight markup language with plain-text-formatting syntax, created in 2004 by John Gruber with Aaron Swartz.
->
->> Markdown is often used to format readme files, for writing messages in online discussion forums, and to create rich text using a plain text editor.
-
-## Tables
-
-| Left columns  | Right columns |
-| ------------- |:-------------:|
-| left foo      | right foo     |
-| left bar      | right bar     |
-| left baz      | right baz     |
-
-## Blocks of code
-
-\`\`\`js
-let message = 'Hello world';
-alert(message);
-\`\`\`
-
-## Mermaid diagrams
 \`\`\`mermaid
-graph TD
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Finish]
-  B -->|No| D[Alternate]
+graph LR
+  A[📝 Markdown Input] --> B(⚡ Monaco Editor)
+  B --> C{🛡️ DOMPurify}
+  C --> D[🎨 Live HTML Preview]
+  D --> E[💾 Export / Cloud Sync]
 \`\`\`
 
-## Inline code
+---
 
-This web site is using \`markedjs/marked\`.
+### ⌨️ Essential Keyboard Shortcuts
+
+| Action | Shortcut | Description |
+| :--- | :---: | :--- |
+| **Save Note** | \`Ctrl + S\` / \`Cmd + S\` | Save locally or sync to Cloud |
+| **Notes Drawer** | \`Ctrl + O\` | Open sliding Notes Library |
+| **Toggle Bold** | \`Ctrl + B\` | Wrap selection in \`**bold**\` |
+| **Toggle Italic** | \`Ctrl + I\` | Wrap selection in \`*italic*\` |
+
+---
+
+### 💻 Code Blocks with Syntax Highlighting
+
+\`\`\`typescript
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: Date;
+}
+
+const welcomeUser = (name: string): string => {
+  return \`Welcome to Markview, \${name}!\`;
+};
+\`\`\`
+
+---
+
+### 🚀 Key Features
+
+* **Instant Live Preview**: Powered by Marked and DOMPurify.
+* **Anchor-Based Synchronized Scrolling**: Headings and diagrams stay locked in sync.
+* **Export Options**: Export your work anytime to \`.md\`, HTML, or PDF.
+* **Cloud & Local Storage**: Save locally in your browser, or sign in to sync with Supabase.
+
+> 💡 **Privacy First:** Your documents stay strictly in your browser storage unless you choose to sign in and save to your private Cloud library.
 `;
 
 const deriveDocTitle = (text: string): string => {
@@ -699,7 +686,8 @@ export const App: React.FC = () => {
       setContent(DEFAULT_MARKDOWN);
       setLastSavedContent(DEFAULT_MARKDOWN);
       autosaveRef.current?.saveImmediately(DEFAULT_MARKDOWN);
-      setDocTitle('Untitled Document');
+      const defaultTitle = deriveDocTitle(DEFAULT_MARKDOWN);
+      setDocTitle(defaultTitle);
       setActiveCloudDocId(null);
       setActiveLocalDocId(null);
       try {
