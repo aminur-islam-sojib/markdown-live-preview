@@ -27,7 +27,8 @@ import {
   Quote,
   Code,
   Copy,
-  ArrowUpDown
+  ArrowUpDown,
+  Unlink
 } from 'lucide-react';
 import { SaveStatus, Theme, ViewMode } from '../types';
 
@@ -400,19 +401,38 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Sync scroll toggle button */}
+        {/* Sync scroll toggle button with indicator dot and dynamic state */}
         <button
           type="button"
           onClick={onToggleSyncScroll}
-          className={`hidden lg:inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition select-none ${
             syncScroll
-              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/60'
-              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent'
+              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shadow-xs'
+              : 'bg-slate-100/90 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-200/60'
           }`}
-          title={`Synchronized Scrolling (${syncScroll ? 'Enabled' : 'Disabled'})`}
+          title={
+            syncScroll
+              ? 'Sync scrolling: ON (Click to unlock panes)'
+              : 'Sync scrolling: OFF (Click to lock panes together)'
+          }
+          aria-pressed={syncScroll}
         >
-          <ArrowUpDown className="w-3.5 h-3.5" />
-          <span className="hidden xl:inline">Sync</span>
+          {/* Status Indicator Dot */}
+          <span
+            className={`w-1.5 h-1.5 rounded-full transition-colors shrink-0 ${
+              syncScroll
+                ? 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.8)]'
+                : 'bg-slate-400 dark:bg-slate-500'
+            }`}
+          />
+          {syncScroll ? (
+            <Link2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+          ) : (
+            <Unlink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          )}
+          <span className="font-semibold text-[11px] sm:text-xs">
+            {syncScroll ? 'Sync On' : 'Sync Off'}
+          </span>
         </button>
       </div>
 

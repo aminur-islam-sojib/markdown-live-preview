@@ -10,6 +10,7 @@ export const SANITIZER_CONFIG: Config = {
     svg: true,
     svgFilters: true
   },
+  ADD_ATTR: ['data-line'],
   // Disallow potentially hazardous tags even within standard HTML
   FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
   // Disallow all inline JavaScript event handlers (onerror, onclick, onload, etc.)

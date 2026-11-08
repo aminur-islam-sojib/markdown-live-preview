@@ -21,6 +21,11 @@ import {
 } from './export/file-io';
 import { onAuthStateChange, signOut as supabaseSignOut } from './supabase/auth';
 import {
+  calculatePreviewScroll,
+  calculateEditorScroll,
+  extractAnchorsFromContainer
+} from './utils/sync-scroll';
+import {
   createCloudDocument,
   updateCloudDocument,
   getCloudDocument,
@@ -233,6 +238,18 @@ export const App: React.FC = () => {
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Synchronized scrolling tracking refs
+  const scrollSourceRef = useRef<'editor' | 'preview' | null>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   // Sync theme with HTML data-theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -307,15 +324,150 @@ export const App: React.FC = () => {
     }
   };
 
-  // Sync scroll from editor to preview
+  // Bidirectional synchronized scrolling: Editor -> Preview
   const handleEditorScroll = (scrollTop: number, scrollHeight: number, height: number) => {
     if (!syncScroll || !previewContainerRef.current) return;
-    const maxScrollTop = scrollHeight - height;
-    if (maxScrollTop <= 0) return;
-    const ratio = scrollTop / maxScrollTop;
+    if (scrollSourceRef.current === 'preview') return;
+
+    scrollSourceRef.current = 'editor';
+    if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      scrollSourceRef.current = null;
+    }, 100);
+
+    const editor = editorInstanceRef.current;
     const preview = previewContainerRef.current;
-    const targetY = (preview.scrollHeight - preview.clientHeight) * ratio;
-    preview.scrollTo({ top: targetY });
+    if (!editor || !preview) return;
+
+    const maxEditorScroll = scrollHeight - height;
+    const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
+
+    // Calculate fractional line from visible ranges
+    const visibleRanges = editor.getVisibleRanges();
+    const topLine = visibleRanges.length > 0 ? visibleRanges[0].startLineNumber : 1;
+    const lineTop = editor.getTopForLineNumber(topLine);
+    const nextLineTop = editor.getTopForLineNumber(topLine + 1);
+    const lineProgress = nextLineTop > lineTop ? (scrollTop - lineTop) / (nextLineTop - lineTop) : 0;
+    const fractionalLine = topLine + Math.max(0, Math.min(1, lineProgress));
+
+    const anchors = extractAnchorsFromContainer(preview);
+    const targetPreviewScroll = calculatePreviewScroll(
+      fractionalLine,
+      scrollTop,
+      maxEditorScroll,
+      maxPreviewScroll,
+      anchors
+    );
+
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      preview.scrollTop = targetPreviewScroll;
+    });
+  };
+
+  // Bidirectional synchronized scrolling: Preview -> Editor
+  const handlePreviewScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
+    if (!syncScroll || !editorInstanceRef.current) return;
+    if (scrollSourceRef.current === 'editor') return;
+
+    scrollSourceRef.current = 'preview';
+    if (scrollTimeoutRef.current) window.clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = window.setTimeout(() => {
+      scrollSourceRef.current = null;
+    }, 100);
+
+    const editor = editorInstanceRef.current;
+    const preview = previewContainerRef.current;
+    if (!editor || !preview) return;
+
+    const layout = editor.getLayoutInfo();
+    const maxEditorScroll = editor.getScrollHeight() - layout.height;
+    const maxPreviewScroll = scrollHeight - clientHeight;
+    const model = editor.getModel();
+    const totalLines = model ? model.getLineCount() : 1;
+
+    const anchors = extractAnchorsFromContainer(preview);
+    const { targetLine } = calculateEditorScroll(
+      scrollTop,
+      maxPreviewScroll,
+      maxEditorScroll,
+      anchors,
+      totalLines
+    );
+
+    if (targetLine <= 1) {
+      editor.setScrollTop(0);
+      return;
+    }
+    if (maxPreviewScroll > 0 && scrollTop >= maxPreviewScroll - 2) {
+      editor.setScrollTop(maxEditorScroll);
+      return;
+    }
+
+    const lineInt = Math.floor(targetLine);
+    const lineFrac = targetLine - lineInt;
+    const lineTop = editor.getTopForLineNumber(lineInt);
+    const nextTop = editor.getTopForLineNumber(lineInt + 1);
+    const targetEditorTop = lineTop + (nextTop - lineTop) * lineFrac;
+
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      editor.setScrollTop(targetEditorTop);
+    });
+  };
+
+  // Toggle sync scroll with immediate alignment & viewmode awareness
+  const handleToggleSyncScroll = () => {
+    setSyncScroll((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('com.markdownlivepreview_sync_scroll', String(next));
+      } catch {}
+
+      if (next) {
+        // Auto-switch to split view if currently in single pane mode
+        if (viewMode !== 'split') {
+          setViewMode('split');
+          try {
+            localStorage.setItem('com.markdownlivepreview_view_mode', 'split');
+          } catch {}
+          setTimeout(() => editorInstanceRef.current?.layout(), 50);
+        }
+
+        // Instantly align preview to editor
+        setTimeout(() => {
+          const editor = editorInstanceRef.current;
+          const preview = previewContainerRef.current;
+          if (editor && preview) {
+            const layout = editor.getLayoutInfo();
+            const visibleRanges = editor.getVisibleRanges();
+            const topLine = visibleRanges.length > 0 ? visibleRanges[0].startLineNumber : 1;
+            const lineTop = editor.getTopForLineNumber(topLine);
+            const nextLineTop = editor.getTopForLineNumber(topLine + 1);
+            const lineProgress = nextLineTop > lineTop ? (editor.getScrollTop() - lineTop) / (nextLineTop - lineTop) : 0;
+            const fractionalLine = topLine + Math.max(0, Math.min(1, lineProgress));
+
+            const anchors = extractAnchorsFromContainer(preview);
+            const maxEditorScroll = editor.getScrollHeight() - layout.height;
+            const maxPreviewScroll = preview.scrollHeight - preview.clientHeight;
+            const targetY = calculatePreviewScroll(
+              fractionalLine,
+              editor.getScrollTop(),
+              maxEditorScroll,
+              maxPreviewScroll,
+              anchors
+            );
+            preview.scrollTop = targetY;
+          }
+        }, 80);
+
+        showToast({ message: 'Sync scroll enabled (panes locked)', type: 'info' });
+      } else {
+        showToast({ message: 'Sync scroll disabled (panes unlocked)', type: 'info' });
+      }
+
+      return next;
+    });
   };
 
   // Handle Save Trigger (Button click or Ctrl+S)
@@ -770,15 +922,7 @@ export const App: React.FC = () => {
         }}
         onFormat={handleFormat}
         syncScroll={syncScroll}
-        onToggleSyncScroll={() => {
-          setSyncScroll((prev) => {
-            const next = !prev;
-            try {
-              localStorage.setItem('com.markdownlivepreview_sync_scroll', String(next));
-            } catch {}
-            return next;
-          });
-        }}
+        onToggleSyncScroll={handleToggleSyncScroll}
       />
 
       {/* Main Workspace (Editor + Split Divider + Preview) */}
@@ -825,6 +969,7 @@ export const App: React.FC = () => {
               content={content}
               theme={theme}
               previewRef={previewContainerRef}
+              onScroll={handlePreviewScroll}
             />
           </div>
         )}
