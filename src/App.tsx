@@ -239,6 +239,8 @@ export const App: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Synchronized scrolling tracking refs
+  const syncScrollRef = useRef(syncScroll);
+  syncScrollRef.current = syncScroll;
   const scrollSourceRef = useRef<'editor' | 'preview' | null>(null);
   const scrollTimeoutRef = useRef<number | null>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -326,7 +328,7 @@ export const App: React.FC = () => {
 
   // Bidirectional synchronized scrolling: Editor -> Preview
   const handleEditorScroll = (scrollTop: number, scrollHeight: number, height: number) => {
-    if (!syncScroll || !previewContainerRef.current) return;
+    if (!syncScrollRef.current || !previewContainerRef.current) return;
     if (scrollSourceRef.current === 'preview') return;
 
     scrollSourceRef.current = 'editor';
@@ -367,7 +369,7 @@ export const App: React.FC = () => {
 
   // Bidirectional synchronized scrolling: Preview -> Editor
   const handlePreviewScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
-    if (!syncScroll || !editorInstanceRef.current) return;
+    if (!syncScrollRef.current || !editorInstanceRef.current) return;
     if (scrollSourceRef.current === 'editor') return;
 
     scrollSourceRef.current = 'preview';
@@ -420,6 +422,7 @@ export const App: React.FC = () => {
   const handleToggleSyncScroll = () => {
     setSyncScroll((prev) => {
       const next = !prev;
+      syncScrollRef.current = next; // Immediately update ref to avoid stale closure
       try {
         localStorage.setItem('com.markdownlivepreview_sync_scroll', String(next));
       } catch {}
